@@ -63,7 +63,6 @@ const buildContributionResponseById = async (db: ReturnType<typeof createDb>, id
     .from(contributions)
     .innerJoin(contributors, eq(contributors.id, contributions.contributorId))
     .where(eq(contributions.id, id))
-    .limit(1);
 
   return rows[0] ?? null;
 };
@@ -73,7 +72,6 @@ const ensureActiveContributor = async (db: ReturnType<typeof createDb>, contribu
     .select({ id: contributors.id, status: contributors.status })
     .from(contributors)
     .where(eq(contributors.id, contributorId))
-    .limit(1);
 
   const contributor = rows[0];
 
@@ -212,7 +210,6 @@ contributionsRoute.put(
       .select()
       .from(contributions)
       .where(eq(contributions.id, contributionId))
-      .limit(1);
 
     const existing = existingRows[0];
 
@@ -295,7 +292,6 @@ contributionsRoute.delete("/:id", requireRole("admin", "superadmin"), zValidator
     .select()
     .from(contributions)
     .where(eq(contributions.id, contributionId))
-    .limit(1);
 
   const existing = existingRows[0];
 

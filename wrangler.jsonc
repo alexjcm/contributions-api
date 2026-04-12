@@ -3,11 +3,26 @@
   "name": "contributions-api",
   "main": "src/index.ts",
   "compatibility_date": "2026-04-11",
+  "observability": {
+    "enabled": false,
+    "head_sampling_rate": 1,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+      "persist": true,
+      "invocation_logs": true
+    },
+    "traces": {
+      "enabled": false,
+      "persist": true,
+      "head_sampling_rate": 1
+    }
+  },
   "keep_vars": true,
   "vars": {
     "TZ_BUSINESS": "America/Guayaquil",
-    "CORS_ALLOWED_ORIGINS": "http://localhost:5173,http://127.0.0.1:5173",
-    "CLERK_AUTHORIZED_PARTIES": "http://localhost:5173,http://127.0.0.1:5173",
+    "CORS_ALLOWED_ORIGINS": "http://localhost:5173,http://127.0.0.1:5173,https://contributions-web.pages.dev",
+    "CLERK_AUTHORIZED_PARTIES": "http://localhost:5173,http://127.0.0.1:5173,https://contributions-web.pages.dev",
     "RATE_LIMIT_MAX": "120",
     "RATE_LIMIT_WINDOW_MS": "60000",
     "APP_ENV": "development"

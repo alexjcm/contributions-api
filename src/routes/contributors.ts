@@ -96,7 +96,6 @@ contributorsRoute.put(
       .select()
       .from(contributors)
       .where(eq(contributors.id, contributorId))
-      .limit(1);
 
     const existing = existingRows[0];
 
@@ -119,7 +118,6 @@ contributorsRoute.put(
         .select()
         .from(contributors)
         .where(eq(contributors.id, contributorId))
-        .limit(1);
 
       const updated = updatedRows[0];
 
@@ -148,7 +146,6 @@ contributorsRoute.delete("/:id", requireRole("superadmin"), zValidator("param", 
     .select()
     .from(contributors)
     .where(eq(contributors.id, contributorId))
-    .limit(1);
 
   const existing = existingRows[0];
 
@@ -173,7 +170,6 @@ contributorsRoute.delete("/:id", requireRole("superadmin"), zValidator("param", 
     .select()
     .from(contributors)
     .where(eq(contributors.id, contributorId))
-    .limit(1);
 
   const updated = updatedRows[0];
 

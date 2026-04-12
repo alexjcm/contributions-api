@@ -34,7 +34,6 @@ settingsRoute.put("/", requireRole("superadmin"), zValidator("json", settingsUpd
     .select()
     .from(settings)
     .where(eq(settings.key, payload.key))
-    .limit(1);
 
   const existing = existingRows[0];
 
@@ -62,7 +61,6 @@ settingsRoute.put("/", requireRole("superadmin"), zValidator("json", settingsUpd
     .select()
     .from(settings)
     .where(eq(settings.key, payload.key))
-    .limit(1);
 
   const updated = updatedRows[0];
 

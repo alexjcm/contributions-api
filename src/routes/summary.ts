@@ -34,7 +34,6 @@ summaryRoute.get("/", zValidator("query", summaryQuerySchema, zodValidationHook)
     .select({ value: settings.value })
     .from(settings)
     .where(eq(settings.key, "monthly_amount_cents"))
-    .limit(1);
 
   const monthlyAmountCents = parseMonthlyAmountCents(monthlyRows[0]?.value) ?? 3200;
   const expectedPerContributorCents = monthlyAmountCents * 12;
