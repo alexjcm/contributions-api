@@ -8,6 +8,7 @@ export type AppBindings = {
   CLERK_SECRET_KEY: string;
   CLERK_PUBLISHABLE_KEY: string;
   CLERK_JWT_KEY?: string;
+  CLERK_AUTHORIZED_PARTIES?: string;
   CORS_ALLOWED_ORIGINS?: string;
   RATE_LIMIT_MAX?: string;
   RATE_LIMIT_WINDOW_MS?: string;

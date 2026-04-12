@@ -2,7 +2,7 @@ import { clerkMiddleware, getAuth } from "@hono/clerk-auth";
 import type { MiddlewareHandler } from "hono";
 
 import { getRoleFromClaims } from "../auth/role-claims";
-import { getAllowedOrigins } from "../lib/cors";
+import { getClerkAuthorizedParties } from "../lib/cors";
 import { AppHttpError } from "../lib/errors";
 import type { AppBindings, AppVariables } from "../types/app";
 
@@ -16,18 +16,37 @@ const readClaims = (auth: ReturnType<typeof getAuth>): Record<string, unknown> =
   return {};
 };
 
+const hasAuthHint = (c: Parameters<AppMiddleware>[0]): boolean => {
+  const authorization = c.req.header("authorization");
+  if (authorization && authorization.trim().length > 0) {
+    return true;
+  }
+
+  const cookie = c.req.header("cookie");
+  return Boolean(cookie && cookie.includes("__session="));
+};
+
 export const applyClerkMiddleware: AppMiddleware = async (c, next) => {
   if (c.req.method === "OPTIONS") {
     await next();
     return;
   }
 
-  const middleware = clerkMiddleware({
+  // Skip Clerk handshake/auth processing when request has no auth hints.
+  // This avoids internal handshake errors on anonymous API calls and lets requireAuth return 401.
+  if (!hasAuthHint(c)) {
+    await next();
+    return;
+  }
+
+  const middlewareOptions = {
     secretKey: c.env.CLERK_SECRET_KEY,
     publishableKey: c.env.CLERK_PUBLISHABLE_KEY,
-    jwtKey: c.env.CLERK_JWT_KEY,
-    authorizedParties: getAllowedOrigins(c.env)
-  });
+    authorizedParties: getClerkAuthorizedParties(c.env),
+    ...(c.env.CLERK_JWT_KEY ? { jwtKey: c.env.CLERK_JWT_KEY } : {})
+  };
+
+  const middleware = clerkMiddleware(middlewareOptions);
 
   await middleware(c, next);
 };
@@ -36,6 +55,10 @@ export const requireAuth: AppMiddleware = async (c, next) => {
   if (c.req.method === "OPTIONS") {
     await next();
     return;
+  }
+
+  if (!hasAuthHint(c)) {
+    throw new AppHttpError(401, "UNAUTHENTICATED", "Se requiere sesión autenticada.");
   }
 
   const auth = getAuth(c, { acceptsToken: "session_token" });

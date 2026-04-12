@@ -25,6 +25,7 @@ app.get("/health", (c) => {
       APP_ENV: c.env.APP_ENV ?? null,
       TZ_BUSINESS: c.env.TZ_BUSINESS ?? null,
       CORS_ALLOWED_ORIGINS: c.env.CORS_ALLOWED_ORIGINS ?? null,
+      CLERK_AUTHORIZED_PARTIES: c.env.CLERK_AUTHORIZED_PARTIES ?? null,
       RATE_LIMIT_MAX: c.env.RATE_LIMIT_MAX ?? null,
       RATE_LIMIT_WINDOW_MS: c.env.RATE_LIMIT_WINDOW_MS ?? null,
       hasClerkSecretKey: Boolean(c.env.CLERK_SECRET_KEY),

@@ -2,19 +2,28 @@ import type { AppBindings } from "../types/app";
 
 const FALLBACK_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"];
 
-export const getAllowedOrigins = (env: AppBindings): string[] => {
-  const raw = env.CORS_ALLOWED_ORIGINS;
-
-  if (!raw || !raw.trim()) {
-    return FALLBACK_ORIGINS;
-  }
-
-  const parsed = raw
+const parseCsv = (raw: string | undefined): string[] =>
+  (raw ?? "")
     .split(",")
     .map((item) => item.trim())
     .filter((item) => item.length > 0);
 
-  return parsed.length > 0 ? parsed : FALLBACK_ORIGINS;
+export const getAllowedOrigins = (env: AppBindings): string[] => {
+  const parsed = parseCsv(env.CORS_ALLOWED_ORIGINS);
+  if (parsed.length === 0) {
+    return FALLBACK_ORIGINS;
+  }
+
+  return parsed;
+};
+
+export const getClerkAuthorizedParties = (env: AppBindings): string[] => {
+  const explicit = parseCsv(env.CLERK_AUTHORIZED_PARTIES);
+  if (explicit.length > 0) {
+    return explicit;
+  }
+
+  return getAllowedOrigins(env);
 };
 
 export const isAllowedOrigin = (env: AppBindings, origin: string | null): boolean => {
