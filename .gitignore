@@ -26,3 +26,7 @@ data/historical/reports/*
 !data/historical/reports/.gitkeep
 data/historical/sql/*
 !data/historical/sql/.gitkeep
+
+# Temporary/local-only assets. Do not commit DB data or helper artifacts.
+data/
+scripts/

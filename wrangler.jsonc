@@ -2,37 +2,63 @@
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "contributions-api",
   "main": "src/index.ts",
-  "compatibility_date": "2026-04-11",
+  // Keep runtime behavior current with platform fixes.
+  "compatibility_date": "2026-04-13",
+  "compatibility_flags": ["nodejs_compat"],
+  // Keep Dashboard/runtime vars unless explicitly updated.
+  "keep_vars": true,
+  // Baseline observability for production troubleshooting.
   "observability": {
-    "enabled": false,
-    "head_sampling_rate": 1,
+    "enabled": true,
     "logs": {
       "enabled": true,
-      "head_sampling_rate": 1,
-      "persist": true,
-      "invocation_logs": true
+      "head_sampling_rate": 1
     },
     "traces": {
-      "enabled": false,
-      "persist": true,
-      "head_sampling_rate": 1
+      "enabled": true,
+      "head_sampling_rate": 0.01
     }
   },
-  "keep_vars": true,
+  // Root config is used for local development only.
   "vars": {
     "TZ_BUSINESS": "America/Guayaquil",
-    "CORS_ALLOWED_ORIGINS": "http://localhost:5173,http://127.0.0.1:5173,https://contributions-web.pages.dev",
-    "CLERK_AUTHORIZED_PARTIES": "http://localhost:5173,http://127.0.0.1:5173,https://contributions-web.pages.dev",
+    "CORS_ALLOWED_ORIGINS": "http://localhost:5173,http://127.0.0.1:5173",
+    "CLERK_AUTHORIZED_PARTIES": "http://localhost:5173,http://127.0.0.1:5173",
     "RATE_LIMIT_MAX": "120",
     "RATE_LIMIT_WINDOW_MS": "60000",
+    // In-memory limiter cap tuned for local dev and free-tier usage.
+    "RATE_LIMIT_MAX_BUCKETS": "5000",
     "APP_ENV": "development"
   },
   "d1_databases": [
     {
       "binding": "CONTRIBUTIONS_DB_BINDING",
-      "database_name": "contributions-db-development",
-      "database_id": "fe72a0a4-76d0-466f-bfb1-2fc89e40977e",
+      "database_name": "contributions-db-local",
+      // Placeholder ID: local commands use --local and never hit remote.
+      "database_id": "00000000-0000-0000-0000-000000000000",
       "migrations_dir": "migrations"
     }
-  ]
+  ],
+  "env": {
+    "production": {
+      "vars": {
+        "TZ_BUSINESS": "America/Guayaquil",
+        "CORS_ALLOWED_ORIGINS": "https://contributions-web.pages.dev",
+        "CLERK_AUTHORIZED_PARTIES": "https://contributions-web.pages.dev",
+        "RATE_LIMIT_MAX": "120",
+        "RATE_LIMIT_WINDOW_MS": "60000",
+        // In-memory limiter cap tuned for free-tier usage.
+        "RATE_LIMIT_MAX_BUCKETS": "5000",
+        "APP_ENV": "production"
+      },
+      "d1_databases": [
+        {
+          "binding": "CONTRIBUTIONS_DB_BINDING",
+          "database_name": "contributions-db-production",
+          "database_id": "740875d6-295e-43b2-ad3f-16640efb8948",
+          "migrations_dir": "migrations"
+        }
+      ]
+    }
+  }
 }

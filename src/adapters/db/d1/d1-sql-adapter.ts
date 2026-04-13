@@ -1,5 +1,3 @@
-import type { D1Database } from "@cloudflare/workers-types";
-
 import type { SqlAdapter, SqlValue } from "../sql-adapter";
 
 export class D1SqlAdapter implements SqlAdapter {

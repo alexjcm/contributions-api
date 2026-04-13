@@ -15,25 +15,11 @@ import type { AppBindings, AppVariables } from "./types/app";
 const app = new Hono<{ Bindings: AppBindings; Variables: AppVariables }>();
 
 app.get("/health", (c) => {
-  // TODO: Remove temporary environment diagnostics from /health after deploy troubleshooting is complete.
-  const publishableKey = c.env.CLERK_PUBLISHABLE_KEY ?? "";
-
+  // Keep health response minimal to avoid leaking runtime configuration.
   return c.json({
     ok: true,
     service: "contributions-api",
-    env: {
-      APP_ENV: c.env.APP_ENV ?? null,
-      TZ_BUSINESS: c.env.TZ_BUSINESS ?? null,
-      CORS_ALLOWED_ORIGINS: c.env.CORS_ALLOWED_ORIGINS ?? null,
-      CLERK_AUTHORIZED_PARTIES: c.env.CLERK_AUTHORIZED_PARTIES ?? null,
-      RATE_LIMIT_MAX: c.env.RATE_LIMIT_MAX ?? null,
-      RATE_LIMIT_WINDOW_MS: c.env.RATE_LIMIT_WINDOW_MS ?? null,
-      hasClerkSecretKey: Boolean(c.env.CLERK_SECRET_KEY),
-      hasClerkJwtKey: Boolean(c.env.CLERK_JWT_KEY),
-      hasClerkPublishableKey: Boolean(publishableKey),
-      clerkPublishableKeyPreview: publishableKey ? `${publishableKey.slice(0, 12)}...` : null,
-      clerkPublishableKeyLength: publishableKey.length
-    }
+    env: c.env.APP_ENV ?? "unknown"
   });
 });
 
@@ -42,6 +28,7 @@ app.use("/api/*", basicRateLimit);
 app.use("/api/*", applyClerkMiddleware);
 app.use("/api/*", requireAuth);
 
+// Keep feature routes isolated by module and mount with app.route().
 app.route("/api/contributions", contributionsRoute);
 app.route("/api/contributors", contributorsRoute);
 app.route("/api/settings", settingsRoute);
@@ -78,9 +65,28 @@ app.onError((error, c) => {
   }
 
   if (!isProd) {
-    console.error(error);
+    // Structured logs are easier to filter in Workers Logs/Traces.
+    console.error(
+      JSON.stringify({
+        message: "Unhandled error",
+        method: c.req.method,
+        path: c.req.path,
+        appEnv: c.env.APP_ENV ?? "unknown",
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      })
+    );
   } else {
-    console.error(`Unhandled error in ${c.req.method} ${c.req.path}`);
+    // In production avoid verbose stack dumps but keep structured context.
+    console.error(
+      JSON.stringify({
+        message: "Unhandled error",
+        method: c.req.method,
+        path: c.req.path,
+        appEnv: c.env.APP_ENV ?? "unknown",
+        error: error instanceof Error ? error.message : String(error)
+      })
+    );
   }
 
   return failure(c, 500, {

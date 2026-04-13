@@ -1,18 +1,16 @@
 import { zValidator } from "@hono/zod-validator";
 import { asc, eq } from "drizzle-orm";
-import { Hono } from "hono";
 import { z } from "zod";
 
 import { createDb } from "../db/client";
 import { contributors } from "../db/schema";
+import { withD1ReadRetry } from "../lib/d1-retry";
 import { AppHttpError, isD1UniqueConstraintError } from "../lib/errors";
+import { appFactory, createAppRoute } from "../lib/hono-factory";
 import { nowIso } from "../lib/business-time";
 import { success } from "../lib/responses";
 import { zodValidationHook } from "../lib/validator";
 import { requireRole } from "../middleware/require-role";
-import type { AppBindings, AppVariables } from "../types/app";
-
-type AppRoute = Hono<{ Bindings: AppBindings; Variables: AppVariables }>;
 
 const contributorsQuerySchema = z.object({
   status: z.enum(["active", "all"]).optional()
@@ -34,54 +32,73 @@ const idParamSchema = z.object({
   id: z.string().regex(/^\d+$/)
 });
 
-export const contributorsRoute: AppRoute = new Hono<{ Bindings: AppBindings; Variables: AppVariables }>();
+export const contributorsRoute = createAppRoute();
 
-contributorsRoute.get("/", zValidator("query", contributorsQuerySchema, zodValidationHook), async (c) => {
-  const db = createDb(c.env.CONTRIBUTIONS_DB_BINDING);
-  const query = c.req.valid("query");
-  const statusFilter = query.status ?? "active";
+const listContributorsHandlers = appFactory.createHandlers(
+  zValidator("query", contributorsQuerySchema, zodValidationHook),
+  async (c) => {
+    const db = createDb(c.env.CONTRIBUTIONS_DB_BINDING);
+    const query = c.req.valid("query");
+    const statusFilter = query.status ?? "active";
 
-  const rows = await db
-    .select()
-    .from(contributors)
-    .where(statusFilter === "all" ? undefined : eq(contributors.status, 1))
-    .orderBy(asc(contributors.name));
+    const rows = await withD1ReadRetry(
+      async () =>
+        db
+          .select({
+            id: contributors.id,
+            name: contributors.name,
+            email: contributors.email,
+            status: contributors.status,
+            createdAt: contributors.createdAt,
+            createdBy: contributors.createdBy,
+            updatedAt: contributors.updatedAt,
+            updatedBy: contributors.updatedBy
+          })
+          .from(contributors)
+          .where(statusFilter === "all" ? undefined : eq(contributors.status, 1))
+          .orderBy(asc(contributors.name)),
+      { label: "contributors.list" }
+    );
 
-  return success(c, 200, { items: rows });
-});
-
-contributorsRoute.post("/", requireRole("superadmin"), zValidator("json", contributorCreateSchema, zodValidationHook), async (c) => {
-  const db = createDb(c.env.CONTRIBUTIONS_DB_BINDING);
-  const auth = c.get("auth");
-  const payload = c.req.valid("json");
-  const now = nowIso();
-
-  try {
-    const inserted = await db
-      .insert(contributors)
-      .values({
-        name: payload.name,
-        email: payload.email ?? null,
-        status: 1,
-        createdAt: now,
-        createdBy: auth.userId,
-        updatedAt: now,
-        updatedBy: auth.userId
-      })
-      .returning();
-
-    return success(c, 201, inserted[0]);
-  } catch (error) {
-    if (isD1UniqueConstraintError(error)) {
-      throw new AppHttpError(409, "EMAIL_CONFLICT", "El email ya está en uso por otro contribuidor.");
-    }
-
-    throw error;
+    return success(c, 200, { items: rows });
   }
-});
+);
 
-contributorsRoute.put(
-  "/:id",
+const createContributorHandlers = appFactory.createHandlers(
+  requireRole("superadmin"),
+  zValidator("json", contributorCreateSchema, zodValidationHook),
+  async (c) => {
+    const db = createDb(c.env.CONTRIBUTIONS_DB_BINDING);
+    const auth = c.get("auth");
+    const payload = c.req.valid("json");
+    const now = nowIso();
+
+    try {
+      const inserted = await db
+        .insert(contributors)
+        .values({
+          name: payload.name,
+          email: payload.email ?? null,
+          status: 1,
+          createdAt: now,
+          createdBy: auth.userId,
+          updatedAt: now,
+          updatedBy: auth.userId
+        })
+        .returning();
+
+      return success(c, 201, inserted[0]);
+    } catch (error) {
+      if (isD1UniqueConstraintError(error)) {
+        throw new AppHttpError(409, "EMAIL_CONFLICT", "El email ya está en uso por otro contribuidor.");
+      }
+
+      throw error;
+    }
+  }
+);
+
+const updateContributorHandlers = appFactory.createHandlers(
   requireRole("superadmin"),
   zValidator("param", idParamSchema, zodValidationHook),
   zValidator("json", contributorUpdateSchema, zodValidationHook),
@@ -95,7 +112,7 @@ contributorsRoute.put(
     const existingRows = await db
       .select()
       .from(contributors)
-      .where(eq(contributors.id, contributorId))
+      .where(eq(contributors.id, contributorId));
 
     const existing = existingRows[0];
 
@@ -117,7 +134,7 @@ contributorsRoute.put(
       const updatedRows = await db
         .select()
         .from(contributors)
-        .where(eq(contributors.id, contributorId))
+        .where(eq(contributors.id, contributorId));
 
       const updated = updatedRows[0];
 
@@ -136,46 +153,55 @@ contributorsRoute.put(
   }
 );
 
-contributorsRoute.delete("/:id", requireRole("superadmin"), zValidator("param", idParamSchema, zodValidationHook), async (c) => {
-  const db = createDb(c.env.CONTRIBUTIONS_DB_BINDING);
-  const auth = c.get("auth");
-  const { id } = c.req.valid("param");
-  const contributorId = Number(id);
+const deleteContributorHandlers = appFactory.createHandlers(
+  requireRole("superadmin"),
+  zValidator("param", idParamSchema, zodValidationHook),
+  async (c) => {
+    const db = createDb(c.env.CONTRIBUTIONS_DB_BINDING);
+    const auth = c.get("auth");
+    const { id } = c.req.valid("param");
+    const contributorId = Number(id);
 
-  const existingRows = await db
-    .select()
-    .from(contributors)
-    .where(eq(contributors.id, contributorId))
+    const existingRows = await db
+      .select()
+      .from(contributors)
+      .where(eq(contributors.id, contributorId));
 
-  const existing = existingRows[0];
+    const existing = existingRows[0];
 
-  if (!existing) {
-    throw new AppHttpError(404, "CONTRIBUTOR_NOT_FOUND", "El contribuidor no existe.");
+    if (!existing) {
+      throw new AppHttpError(404, "CONTRIBUTOR_NOT_FOUND", "El contribuidor no existe.");
+    }
+
+    if (existing.status === 0) {
+      return success(c, 200, existing);
+    }
+
+    await db
+      .update(contributors)
+      .set({
+        status: 0,
+        updatedAt: nowIso(),
+        updatedBy: auth.userId
+      })
+      .where(eq(contributors.id, contributorId));
+
+    const updatedRows = await db
+      .select()
+      .from(contributors)
+      .where(eq(contributors.id, contributorId));
+
+    const updated = updatedRows[0];
+
+    if (!updated) {
+      throw new AppHttpError(500, "READ_AFTER_WRITE_FAILED", "No se pudo recuperar el contribuidor desactivado.");
+    }
+
+    return success(c, 200, updated);
   }
+);
 
-  if (existing.status === 0) {
-    return success(c, 200, existing);
-  }
-
-  await db
-    .update(contributors)
-    .set({
-      status: 0,
-      updatedAt: nowIso(),
-      updatedBy: auth.userId
-    })
-    .where(eq(contributors.id, contributorId));
-
-  const updatedRows = await db
-    .select()
-    .from(contributors)
-    .where(eq(contributors.id, contributorId))
-
-  const updated = updatedRows[0];
-
-  if (!updated) {
-    throw new AppHttpError(500, "READ_AFTER_WRITE_FAILED", "No se pudo recuperar el contribuidor desactivado.");
-  }
-
-  return success(c, 200, updated);
-});
+contributorsRoute.get("/", ...listContributorsHandlers);
+contributorsRoute.post("/", ...createContributorHandlers);
+contributorsRoute.put("/:id", ...updateContributorHandlers);
+contributorsRoute.delete("/:id", ...deleteContributorHandlers);

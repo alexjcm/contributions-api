@@ -1,20 +1,18 @@
 import { zValidator } from "@hono/zod-validator";
 import { and, asc, eq, sql } from "drizzle-orm";
-import { Hono } from "hono";
 import { z } from "zod";
 
 import { createDb } from "../db/client";
 import { contributors, contributions } from "../db/schema";
 import { getCurrentBusinessYear, nowIso } from "../lib/business-time";
+import { withD1ReadRetry } from "../lib/d1-retry";
 import { AppHttpError, isD1UniqueConstraintError } from "../lib/errors";
+import { appFactory, createAppRoute } from "../lib/hono-factory";
 import { buildPagination, parsePageNumber, parsePageSize } from "../lib/pagination";
 import { assertCanMutateContributionYear } from "../lib/period";
 import { success } from "../lib/responses";
 import { zodValidationHook } from "../lib/validator";
 import { requireRole } from "../middleware/require-role";
-import type { AppBindings, AppVariables } from "../types/app";
-
-type AppRoute = Hono<{ Bindings: AppBindings; Variables: AppVariables }>;
 
 const dateOnlySchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Formato esperado: YYYY-MM-DD");
 
@@ -62,7 +60,7 @@ const buildContributionResponseById = async (db: ReturnType<typeof createDb>, id
     })
     .from(contributions)
     .innerJoin(contributors, eq(contributors.id, contributions.contributorId))
-    .where(eq(contributions.id, id))
+    .where(eq(contributions.id, id));
 
   return rows[0] ?? null;
 };
@@ -71,7 +69,7 @@ const ensureActiveContributor = async (db: ReturnType<typeof createDb>, contribu
   const rows = await db
     .select({ id: contributors.id, status: contributors.status })
     .from(contributors)
-    .where(eq(contributors.id, contributorId))
+    .where(eq(contributors.id, contributorId));
 
   const contributor = rows[0];
 
@@ -84,118 +82,129 @@ const ensureActiveContributor = async (db: ReturnType<typeof createDb>, contribu
   }
 };
 
-export const contributionsRoute: AppRoute = new Hono<{ Bindings: AppBindings; Variables: AppVariables }>();
+export const contributionsRoute = createAppRoute();
 
-contributionsRoute.get("/", zValidator("query", contributionsQuerySchema, zodValidationHook), async (c) => {
-  const db = createDb(c.env.CONTRIBUTIONS_DB_BINDING);
-  const query = c.req.valid("query");
+const listContributionsHandlers = appFactory.createHandlers(
+  zValidator("query", contributionsQuerySchema, zodValidationHook),
+  async (c) => {
+    const db = createDb(c.env.CONTRIBUTIONS_DB_BINDING);
+    const query = c.req.valid("query");
 
-  const year = query.year ? Number(query.year) : getCurrentBusinessYear();
-  const contributorId = query.contributorId ? Number(query.contributorId) : null;
-  const pageNumber = parsePageNumber(query["page[number]"]);
-  const pageSize = parsePageSize(query["page[size]"]);
-  const offset = (pageNumber - 1) * pageSize;
+    const year = query.year ? Number(query.year) : getCurrentBusinessYear();
+    const contributorId = query.contributorId ? Number(query.contributorId) : null;
+    const pageNumber = parsePageNumber(query["page[number]"]);
+    const pageSize = parsePageSize(query["page[size]"]);
+    const offset = (pageNumber - 1) * pageSize;
 
-  const whereParts = [eq(contributions.status, 1), eq(contributions.year, year)];
+    const whereParts = [eq(contributions.status, 1), eq(contributions.year, year)];
 
-  if (contributorId) {
-    whereParts.push(eq(contributions.contributorId, contributorId));
+    if (contributorId) {
+      whereParts.push(eq(contributions.contributorId, contributorId));
+    }
+
+    const whereClause = and(...whereParts);
+
+    const [countRows, items] = await withD1ReadRetry(
+      async () =>
+        Promise.all([
+          db
+            .select({ totalItems: sql<number>`count(*)` })
+            .from(contributions)
+            .where(whereClause),
+          db
+            .select({
+              id: contributions.id,
+              contributorId: contributions.contributorId,
+              contributorName: contributors.name,
+              year: contributions.year,
+              month: contributions.month,
+              amountCents: contributions.amountCents,
+              paidAt: contributions.paidAt,
+              notes: contributions.notes,
+              status: contributions.status,
+              createdAt: contributions.createdAt,
+              createdBy: contributions.createdBy,
+              updatedAt: contributions.updatedAt,
+              updatedBy: contributions.updatedBy
+            })
+            .from(contributions)
+            .innerJoin(contributors, eq(contributors.id, contributions.contributorId))
+            .where(whereClause)
+            .orderBy(asc(contributions.month), asc(contributors.name))
+            .limit(pageSize)
+            .offset(offset)
+        ]),
+      { label: "contributions.list" }
+    );
+
+    const totalItems = Number(countRows[0]?.totalItems ?? 0);
+
+    return success(c, 200, {
+      items,
+      pagination: buildPagination(pageNumber, pageSize, totalItems)
+    });
   }
+);
 
-  const whereClause = and(...whereParts);
+const createContributionHandlers = appFactory.createHandlers(
+  requireRole("admin", "superadmin"),
+  zValidator("json", contributionCreateSchema, zodValidationHook),
+  async (c) => {
+    const db = createDb(c.env.CONTRIBUTIONS_DB_BINDING);
+    const auth = c.get("auth");
+    const payload = c.req.valid("json");
 
-  const countRows = await db
-    .select({ totalItems: sql<number>`count(*)` })
-    .from(contributions)
-    .where(whereClause);
+    assertCanMutateContributionYear(auth.role, payload.year);
+    await ensureActiveContributor(db, payload.contributorId);
 
-  const totalItems = Number(countRows[0]?.totalItems ?? 0);
+    const now = nowIso();
 
-  const items = await db
-    .select({
-      id: contributions.id,
-      contributorId: contributions.contributorId,
-      contributorName: contributors.name,
-      year: contributions.year,
-      month: contributions.month,
-      amountCents: contributions.amountCents,
-      paidAt: contributions.paidAt,
-      notes: contributions.notes,
-      status: contributions.status,
-      createdAt: contributions.createdAt,
-      createdBy: contributions.createdBy,
-      updatedAt: contributions.updatedAt,
-      updatedBy: contributions.updatedBy
-    })
-    .from(contributions)
-    .innerJoin(contributors, eq(contributors.id, contributions.contributorId))
-    .where(whereClause)
-    .orderBy(asc(contributions.month), asc(contributors.name))
-    .limit(pageSize)
-    .offset(offset);
+    try {
+      const inserted = await db
+        .insert(contributions)
+        .values({
+          contributorId: payload.contributorId,
+          year: payload.year,
+          month: payload.month,
+          amountCents: payload.amountCents,
+          paidAt: payload.paidAt ?? null,
+          notes: payload.notes ?? null,
+          status: 1,
+          createdAt: now,
+          createdBy: auth.userId,
+          updatedAt: now,
+          updatedBy: auth.userId
+        })
+        .returning({ id: contributions.id });
 
-  return success(c, 200, {
-    items,
-    pagination: buildPagination(pageNumber, pageSize, totalItems)
-  });
-});
+      const createdId = inserted[0]?.id;
 
-contributionsRoute.post("/", requireRole("admin", "superadmin"), zValidator("json", contributionCreateSchema, zodValidationHook), async (c) => {
-  const db = createDb(c.env.CONTRIBUTIONS_DB_BINDING);
-  const auth = c.get("auth");
-  const payload = c.req.valid("json");
+      if (!createdId) {
+        throw new AppHttpError(500, "CREATE_FAILED", "No se pudo crear el aporte.");
+      }
 
-  assertCanMutateContributionYear(auth.role, payload.year);
-  await ensureActiveContributor(db, payload.contributorId);
+      const created = await buildContributionResponseById(db, createdId);
 
-  const now = nowIso();
+      if (!created) {
+        throw new AppHttpError(500, "CREATE_FAILED", "No se pudo recuperar el aporte creado.");
+      }
 
-  try {
-    const inserted = await db
-      .insert(contributions)
-      .values({
-        contributorId: payload.contributorId,
-        year: payload.year,
-        month: payload.month,
-        amountCents: payload.amountCents,
-        paidAt: payload.paidAt ?? null,
-        notes: payload.notes ?? null,
-        status: 1,
-        createdAt: now,
-        createdBy: auth.userId,
-        updatedAt: now,
-        updatedBy: auth.userId
-      })
-      .returning({ id: contributions.id });
+      return success(c, 201, created);
+    } catch (error) {
+      if (isD1UniqueConstraintError(error)) {
+        throw new AppHttpError(
+          409,
+          "ACTIVE_CONTRIBUTION_CONFLICT",
+          "Ya existe un aporte activo para ese contribuidor en el mismo año y mes."
+        );
+      }
 
-    const createdId = inserted[0]?.id;
-
-    if (!createdId) {
-      throw new AppHttpError(500, "CREATE_FAILED", "No se pudo crear el aporte.");
+      throw error;
     }
-
-    const created = await buildContributionResponseById(db, createdId);
-
-    if (!created) {
-      throw new AppHttpError(500, "CREATE_FAILED", "No se pudo recuperar el aporte creado.");
-    }
-
-    return success(c, 201, created);
-  } catch (error) {
-    if (isD1UniqueConstraintError(error)) {
-      throw new AppHttpError(
-        409,
-        "ACTIVE_CONTRIBUTION_CONFLICT",
-        "Ya existe un aporte activo para ese contribuidor en el mismo año y mes."
-      );
-    }
-
-    throw error;
   }
-});
+);
 
-contributionsRoute.put(
-  "/:id",
+const updateContributionHandlers = appFactory.createHandlers(
   requireRole("admin", "superadmin"),
   zValidator("param", idParamSchema, zodValidationHook),
   zValidator("json", contributionUpdateSchema, zodValidationHook),
@@ -209,7 +218,7 @@ contributionsRoute.put(
     const existingRows = await db
       .select()
       .from(contributions)
-      .where(eq(contributions.id, contributionId))
+      .where(eq(contributions.id, contributionId));
 
     const existing = existingRows[0];
 
@@ -282,49 +291,58 @@ contributionsRoute.put(
   }
 );
 
-contributionsRoute.delete("/:id", requireRole("admin", "superadmin"), zValidator("param", idParamSchema, zodValidationHook), async (c) => {
-  const db = createDb(c.env.CONTRIBUTIONS_DB_BINDING);
-  const auth = c.get("auth");
-  const { id } = c.req.valid("param");
-  const contributionId = Number(id);
+const deleteContributionHandlers = appFactory.createHandlers(
+  requireRole("admin", "superadmin"),
+  zValidator("param", idParamSchema, zodValidationHook),
+  async (c) => {
+    const db = createDb(c.env.CONTRIBUTIONS_DB_BINDING);
+    const auth = c.get("auth");
+    const { id } = c.req.valid("param");
+    const contributionId = Number(id);
 
-  const existingRows = await db
-    .select()
-    .from(contributions)
-    .where(eq(contributions.id, contributionId))
+    const existingRows = await db
+      .select()
+      .from(contributions)
+      .where(eq(contributions.id, contributionId));
 
-  const existing = existingRows[0];
+    const existing = existingRows[0];
 
-  if (!existing) {
-    throw new AppHttpError(404, "CONTRIBUTION_NOT_FOUND", "El aporte no existe.");
-  }
-
-  assertCanMutateContributionYear(auth.role, existing.year);
-
-  if (existing.status === 0) {
-    const current = await buildContributionResponseById(db, contributionId);
-
-    if (!current) {
-      throw new AppHttpError(500, "READ_FAILED", "No se pudo recuperar el aporte inactivo.");
+    if (!existing) {
+      throw new AppHttpError(404, "CONTRIBUTION_NOT_FOUND", "El aporte no existe.");
     }
 
-    return success(c, 200, current);
+    assertCanMutateContributionYear(auth.role, existing.year);
+
+    if (existing.status === 0) {
+      const current = await buildContributionResponseById(db, contributionId);
+
+      if (!current) {
+        throw new AppHttpError(500, "READ_FAILED", "No se pudo recuperar el aporte inactivo.");
+      }
+
+      return success(c, 200, current);
+    }
+
+    await db
+      .update(contributions)
+      .set({
+        status: 0,
+        updatedAt: nowIso(),
+        updatedBy: auth.userId
+      })
+      .where(eq(contributions.id, contributionId));
+
+    const updated = await buildContributionResponseById(db, contributionId);
+
+    if (!updated) {
+      throw new AppHttpError(500, "READ_AFTER_WRITE_FAILED", "No se pudo recuperar el aporte desactivado.");
+    }
+
+    return success(c, 200, updated);
   }
+);
 
-  await db
-    .update(contributions)
-    .set({
-      status: 0,
-      updatedAt: nowIso(),
-      updatedBy: auth.userId
-    })
-    .where(eq(contributions.id, contributionId));
-
-  const updated = await buildContributionResponseById(db, contributionId);
-
-  if (!updated) {
-    throw new AppHttpError(500, "READ_AFTER_WRITE_FAILED", "No se pudo recuperar el aporte desactivado.");
-  }
-
-  return success(c, 200, updated);
-});
+contributionsRoute.get("/", ...listContributionsHandlers);
+contributionsRoute.post("/", ...createContributionHandlers);
+contributionsRoute.put("/:id", ...updateContributionHandlers);
+contributionsRoute.delete("/:id", ...deleteContributionHandlers);
