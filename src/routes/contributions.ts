@@ -15,8 +15,6 @@ import { success } from "../lib/responses";
 import { zodValidationHook } from "../lib/validator";
 import { requirePermission } from "../middleware/require-permission";
 
-const dateOnlySchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Formato esperado: YYYY-MM-DD");
-
 const contributionsQuerySchema = z.object({
   year: z.string().regex(/^\d+$/).optional(),
   contributorId: z.string().regex(/^\d+$/).optional(),
@@ -29,7 +27,6 @@ const contributionCreateSchema = z.object({
   year: z.number().int().min(2000).max(2100),
   month: z.number().int().min(1).max(12),
   amountCents: z.number().int().min(1),
-  paidAt: dateOnlySchema.nullable().optional(),
   notes: z.string().max(500).trim().nullable().optional()
 });
 
@@ -51,7 +48,6 @@ const buildContributionResponseById = async (db: ReturnType<typeof createDb>, id
       year: contributions.year,
       month: contributions.month,
       amountCents: contributions.amountCents,
-      paidAt: contributions.paidAt,
       notes: contributions.notes,
       status: contributions.status,
       createdAt: contributions.createdAt,
@@ -121,7 +117,6 @@ const listContributionsHandlers = appFactory.createHandlers(
               year: contributions.year,
               month: contributions.month,
               amountCents: contributions.amountCents,
-              paidAt: contributions.paidAt,
               notes: contributions.notes,
               status: contributions.status,
               createdAt: contributions.createdAt,
@@ -169,7 +164,6 @@ const createContributionHandlers = appFactory.createHandlers(
           year: payload.year,
           month: payload.month,
           amountCents: payload.amountCents,
-          paidAt: payload.paidAt ?? null,
           notes: payload.notes ?? null,
           status: 1,
           createdAt: now,
@@ -238,7 +232,6 @@ const updateContributionHandlers = appFactory.createHandlers(
     const targetContributorId = payload.contributorId ?? existing.contributorId;
     await ensureActiveContributor(db, targetContributorId);
 
-    const nextPaidAt = Object.hasOwn(payload, "paidAt") ? (payload.paidAt ?? null) : existing.paidAt;
     const nextNotes = Object.hasOwn(payload, "notes") ? (payload.notes ?? null) : existing.notes;
 
     const hasChanges =
@@ -246,7 +239,6 @@ const updateContributionHandlers = appFactory.createHandlers(
       targetYear !== existing.year ||
       (payload.month ?? existing.month) !== existing.month ||
       (payload.amountCents ?? existing.amountCents) !== existing.amountCents ||
-      nextPaidAt !== existing.paidAt ||
       nextNotes !== existing.notes;
 
     if (!hasChanges) {
@@ -265,7 +257,6 @@ const updateContributionHandlers = appFactory.createHandlers(
           year: targetYear,
           month: payload.month ?? existing.month,
           amountCents: payload.amountCents ?? existing.amountCents,
-          paidAt: nextPaidAt,
           notes: nextNotes,
           updatedAt: nowIso(),
           updatedBy: auth.userId

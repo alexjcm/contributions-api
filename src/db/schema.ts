@@ -40,7 +40,6 @@ export const contributions = sqliteTable(
     year: integer("year").notNull(),
     month: integer("month").notNull(),
     amountCents: integer("amount_cents").notNull(),
-    paidAt: text("paid_at"),
     notes: text("notes"),
     status: integer("status").notNull().default(1),
     createdAt: text("created_at").notNull(),
