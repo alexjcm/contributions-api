@@ -25,7 +25,8 @@ const contributorCreateSchema = z.object({
 const contributorUpdateSchema = z
   .object({
     name: z.string().trim().min(1).max(120).optional(),
-    email: z.string().email().trim().toLowerCase().nullable().optional()
+    email: z.string().email().trim().toLowerCase().nullable().optional(),
+    status: z.union([z.literal(0), z.literal(1)]).optional()
   })
   .refine((payload) => Object.keys(payload).length > 0, "Debes enviar al menos un campo para actualizar.");
 
@@ -128,6 +129,7 @@ const updateContributorHandlers = appFactory.createHandlers(
         .set({
           name: payload.name ?? existing.name,
           email: Object.hasOwn(payload, "email") ? (payload.email ?? null) : existing.email,
+          status: payload.status ?? existing.status,
           updatedAt: nowIso(),
           updatedBy: auth.userId
         })
@@ -155,55 +157,6 @@ const updateContributorHandlers = appFactory.createHandlers(
   }
 );
 
-const deleteContributorHandlers = appFactory.createHandlers(
-  requirePermission(API_PERMISSIONS.contributorsWrite),
-  zValidator("param", idParamSchema, zodValidationHook),
-  async (c) => {
-    const db = createDb(c.env.CONTRIBUTIONS_DB_BINDING);
-    const auth = c.get("auth");
-    const { id } = c.req.valid("param");
-    const contributorId = Number(id);
-
-    const existingRows = await db
-      .select()
-      .from(contributors)
-      .where(eq(contributors.id, contributorId));
-
-    const existing = existingRows[0];
-
-    if (!existing) {
-      throw new AppHttpError(404, "CONTRIBUTOR_NOT_FOUND", "El contribuyente no existe.");
-    }
-
-    if (existing.status === 0) {
-      return success(c, 200, existing);
-    }
-
-    await db
-      .update(contributors)
-      .set({
-        status: 0,
-        updatedAt: nowIso(),
-        updatedBy: auth.userId
-      })
-      .where(eq(contributors.id, contributorId));
-
-    const updatedRows = await db
-      .select()
-      .from(contributors)
-      .where(eq(contributors.id, contributorId));
-
-    const updated = updatedRows[0];
-
-    if (!updated) {
-      throw new AppHttpError(500, "READ_AFTER_WRITE_FAILED", "No se pudo recuperar el contribuyente desactivado.");
-    }
-
-    return success(c, 200, updated);
-  }
-);
-
 contributorsRoute.get("/", ...listContributorsHandlers);
 contributorsRoute.post("/", ...createContributorHandlers);
 contributorsRoute.put("/:id", ...updateContributorHandlers);
-contributorsRoute.delete("/:id", ...deleteContributorHandlers);
