@@ -19,48 +19,25 @@
       "head_sampling_rate": 0.01
     }
   },
-  // Root config is used for local development only.
+  // Root config is the canonical production Worker: contributions-api.
+  // Local development overrides runtime vars via .dev.vars and uses D1 with --local.
   "vars": {
     "TZ_BUSINESS": "America/Guayaquil",
-    "CORS_ALLOWED_ORIGINS": "http://localhost:5173,http://127.0.0.1:5173",
+    "CORS_ALLOWED_ORIGINS": "https://contributions-web.pages.dev",
     "AUTH0_ISSUER": "https://dev-mz3wmzwe2532icvg.us.auth0.com/",
     "AUTH0_AUDIENCE": "https://api.contributions",
     "RATE_LIMIT_MAX": "120",
     "RATE_LIMIT_WINDOW_MS": "60000",
-    // In-memory limiter cap tuned for local dev and free-tier usage.
+    // In-memory limiter cap tuned for free-tier usage.
     "RATE_LIMIT_MAX_BUCKETS": "5000",
-    "APP_ENV": "development"
+    "APP_ENV": "production"
   },
   "d1_databases": [
     {
       "binding": "CONTRIBUTIONS_DB_BINDING",
-      "database_name": "contributions-db-local",
-      // Placeholder ID: local commands use --local and never hit remote.
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_name": "contributions-db-production",
+      "database_id": "740875d6-295e-43b2-ad3f-16640efb8948",
       "migrations_dir": "migrations"
     }
-  ],
-  "env": {
-    "production": {
-      "vars": {
-        "TZ_BUSINESS": "America/Guayaquil",
-        "CORS_ALLOWED_ORIGINS": "https://contributions-web.pages.dev",
-        "AUTH0_ISSUER": "https://dev-mz3wmzwe2532icvg.us.auth0.com/",
-        "AUTH0_AUDIENCE": "https://api.contributions",
-        "RATE_LIMIT_MAX": "120",
-        "RATE_LIMIT_WINDOW_MS": "60000",
-        // In-memory limiter cap tuned for free-tier usage.
-        "RATE_LIMIT_MAX_BUCKETS": "5000",
-        "APP_ENV": "production"
-      },
-      "d1_databases": [
-        {
-          "binding": "CONTRIBUTIONS_DB_BINDING",
-          "database_name": "contributions-db-production",
-          "database_id": "740875d6-295e-43b2-ad3f-16640efb8948",
-          "migrations_dir": "migrations"
-        }
-      ]
-    }
-  }
+  ]
 }
