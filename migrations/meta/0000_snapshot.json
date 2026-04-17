@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "d1ea185d-d0e8-41be-aa5a-119c4084059a",
+  "id": "dff698e3-0357-428e-a6f8-2ed842c4f8af",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "contributions": {
@@ -40,20 +40,6 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false
-        },
-        "paid_at": {
-          "name": "paid_at",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "notes": {
-          "name": "notes",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
           "autoincrement": false
         },
         "status": {
@@ -282,7 +268,6 @@
   "views": {},
   "enums": {},
   "_meta": {
-    "schemas": {},
     "tables": {},
     "columns": {}
   },

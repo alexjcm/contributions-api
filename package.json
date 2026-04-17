@@ -8,9 +8,7 @@
   },
   "scripts": {
     "dev": "wrangler --config wrangler.dev.jsonc dev src/index.ts --local",
-    "deploy": "wrangler deploy",
     "deploy:prod": "wrangler deploy",
-    "preview": "wrangler versions upload",
     "typecheck": "tsc --noEmit",
     "types:wrangler": "wrangler --config wrangler.dev.jsonc types",
     "d1:generate": "drizzle-kit generate --config drizzle.config.ts",

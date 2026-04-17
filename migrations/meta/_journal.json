@@ -4,9 +4,9 @@
   "entries": [
     {
       "idx": 0,
-      "version": "6",
+      "version": "7",
       "when": 1776046610882,
-      "tag": "0000_flat_richard_fisk",
+      "tag": "0000_initial_schema",
       "breakpoints": true
     }
   ]

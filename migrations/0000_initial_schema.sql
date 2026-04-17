@@ -30,8 +30,6 @@ CREATE TABLE contributions (
   year INTEGER NOT NULL,
   month INTEGER NOT NULL CHECK (month BETWEEN 1 AND 12),
   amount_cents INTEGER NOT NULL CHECK (amount_cents >= 1),
-  paid_at TEXT,
-  notes TEXT,
   status INTEGER NOT NULL DEFAULT 1 CHECK (status IN (0, 1)),
   created_at TEXT NOT NULL,
   created_by TEXT NOT NULL,
