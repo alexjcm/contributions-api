@@ -110,14 +110,15 @@ export const buildAnnualSummary = (
         return null;
       }
 
-      let monthsComplete = 0;
-
+      let monthsByPresence = 0;
       for (let month = 1; month <= 12; month += 1) {
-        const monthAmount = stats.monthTotals.get(month) ?? 0;
-        if (monthAmount >= monthlyAmountCents) {
-          monthsComplete += 1;
+        if ((stats.monthTotals.get(month) ?? 0) > 0) {
+          monthsByPresence += 1;
         }
       }
+
+      const monthsByVolume = stats.totalPaidCents / monthlyAmountCents;
+      const monthsComplete = Math.min(12, Math.max(monthsByPresence, monthsByVolume));
 
       return {
         contributorId: contributor.id,
@@ -126,7 +127,6 @@ export const buildAnnualSummary = (
         status: contributor.status as 0 | 1,
         totalPaidCents: stats.totalPaidCents,
         expectedCents: expectedPerContributorCents,
-        differenceCents: stats.totalPaidCents - expectedPerContributorCents,
         monthsComplete,
         monthsPendingOrIncomplete: 12 - monthsComplete,
         state: getContributorState(stats.totalPaidCents, expectedPerContributorCents)
@@ -145,7 +145,6 @@ export const buildAnnualSummary = (
     totals: {
       collectedCents,
       expectedCents,
-      differenceCents: collectedCents - expectedCents,
       contributorsCount: contributorSummary.length,
       activeContributorsCount,
       inactiveContributorsCount

@@ -5,7 +5,6 @@ import { contributors, contributions } from "../db/schema";
 import { nowIso } from "./business-time";
 import { withDbReadRetry } from "./db-retry";
 import { AppHttpError, isUniqueConstraintError } from "./errors";
-import { buildPagination } from "./pagination";
 import type { AuthContext } from "../types/app";
 
 type DbClient = ReturnType<typeof createDb>;
@@ -21,10 +20,6 @@ type ContributionUpdatePayload = Partial<ContributionMutationPayload>;
 
 type ListContributionsParams = {
   year: number;
-  contributorId: number | null;
-  loadAll: boolean;
-  pageNumber: number;
-  pageSize: number;
 };
 
 export const getContributionResponseById = async (db: DbClient, id: number) => {
@@ -73,17 +68,10 @@ export const ensureActiveContributor = async (db: DbClient, contributorId: numbe
 };
 
 export const listContributions = async (db: DbClient, params: ListContributionsParams) => {
-  const { year, contributorId, loadAll, pageNumber, pageSize } = params;
-  const offset = (pageNumber - 1) * pageSize;
-  const whereParts = [eq(contributions.status, 1), eq(contributions.year, year)];
+  const { year } = params;
+  const whereClause = and(eq(contributions.status, 1), eq(contributions.year, year));
 
-  if (contributorId) {
-    whereParts.push(eq(contributions.contributorId, contributorId));
-  }
-
-  const whereClause = and(...whereParts);
-
-  const baseItemsQuery = db
+  const items = await db
     .select({
       id: contributions.id,
       contributorId: contributions.contributorId,
@@ -102,25 +90,8 @@ export const listContributions = async (db: DbClient, params: ListContributionsP
     .where(whereClause)
     .orderBy(desc(contributions.month), asc(contributors.name));
 
-  const [countRows, items] = await withDbReadRetry(
-    async () =>
-      Promise.all([
-        db
-          .select({ totalItems: sql<number>`count(*)` })
-          .from(contributions)
-          .where(whereClause),
-        loadAll ? baseItemsQuery : baseItemsQuery.limit(pageSize).offset(offset)
-      ]),
-    { label: "contributions.list" }
-  );
-
-  const totalItems = Number(countRows[0]?.totalItems ?? 0);
-  const effectivePageSize = loadAll ? Math.max(items.length, 1) : pageSize;
-  const effectivePageNumber = loadAll ? 1 : pageNumber;
-
   return {
-    items,
-    pagination: buildPagination(effectivePageNumber, effectivePageSize, totalItems)
+    items
   };
 };
 

@@ -14,18 +14,13 @@ import {
 } from "../lib/contributions-service";
 import { AppHttpError } from "../lib/errors";
 import { appFactory, createAppRoute } from "../lib/hono-factory";
-import { parsePageNumber, parsePageSize } from "../lib/pagination";
 import { assertCanMutateContributionYear } from "../lib/period";
 import { success } from "../lib/responses";
 import { zodValidationHook } from "../lib/validator";
 import { requirePermission } from "../middleware/require-permission";
 
 const contributionsQuerySchema = z.object({
-  year: z.string().regex(/^\d+$/).optional(),
-  contributorId: z.string().regex(/^\d+$/).optional(),
-  all: z.enum(["true", "false"]).optional(),
-  "page[number]": z.string().regex(/^\d+$/).optional(),
-  "page[size]": z.string().regex(/^\d+$/).optional()
+  year: z.string().regex(/^\d+$/).optional()
 });
 
 const contributionCreateSchema = z.object({
@@ -53,21 +48,12 @@ const listContributionsHandlers = appFactory.createHandlers(
     const query = c.req.valid("query");
 
     const year = query.year ? Number(query.year) : getCurrentBusinessYear();
-    const contributorId = query.contributorId ? Number(query.contributorId) : null;
-    const loadAll = query.all === "true";
-    const pageNumber = parsePageNumber(query["page[number]"]);
-    const pageSize = parsePageSize(query["page[size]"]);
     const result = await listContributions(db, {
-      year,
-      contributorId,
-      loadAll,
-      pageNumber,
-      pageSize
+      year
     });
 
     return success(c, 200, {
-      items: result.items,
-      pagination: result.pagination
+      items: result.items
     });
   }
 );
