@@ -18,8 +18,7 @@ Family Contributions Management API using Hono + Drizzle + Cloudflare Workers + 
 ## Local Development
 
 ### Prerequisites
-- **Node.js**: Version 24 or higher (management recommended with `fnm`).
-- **NPM**: Dependency installation.
+- **Node.js**: Version 24+.
 
 ```bash
 npm install
@@ -83,7 +82,7 @@ npm run d1:migrate:local
 
 ### Deploy
 ```bash
-npm run deploy:prod
+npm run deploy
 ```
 
 ### Migrations
