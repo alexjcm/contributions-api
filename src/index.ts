@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { ZodError } from "zod";
 
+import { bodyLimit } from "hono/body-limit";
 import { AppHttpError } from "./lib/errors";
 import { failure } from "./lib/responses";
 import { requireAuth } from "./middleware/auth";
@@ -22,6 +23,13 @@ app.get("/health", (c) => {
     env: c.env.APP_ENV ?? "unknown"
   });
 });
+
+app.use("/api/*", bodyLimit({
+  maxSize: 1024 * 1024, // 1MB
+  onError: () => {
+    throw new AppHttpError(413, "PAYLOAD_TOO_LARGE", "El tamaño de la petición excede el límite permitido de 1MB.");
+  }
+}));
 
 app.use("/api/*", strictCors);
 app.use("/api/*", basicRateLimit);

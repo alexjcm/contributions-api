@@ -1,9 +1,8 @@
-import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 
 import { createDb } from "../db/client";
 import { contributors, contributions } from "../db/schema";
 import { nowIso } from "./business-time";
-import { withDbReadRetry } from "./db-retry";
 import { AppHttpError, isUniqueConstraintError } from "./errors";
 import type { AuthContext } from "../types/app";
 
