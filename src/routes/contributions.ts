@@ -44,7 +44,7 @@ const listContributionsHandlers = appFactory.createHandlers(
   requirePermission(API_PERMISSIONS.contributionsRead),
   zValidator("query", contributionsQuerySchema, zodValidationHook),
   async (c) => {
-    const db = createDb(c.env.CONTRIBUTIONS_DB_BINDING);
+    const db = createDb(c.env.DCM_DB_BINDING);
     const query = c.req.valid("query");
 
     const year = query.year ? Number(query.year) : getCurrentBusinessYear();
@@ -62,7 +62,7 @@ const createContributionHandlers = appFactory.createHandlers(
   requirePermission(API_PERMISSIONS.contributionsWrite),
   zValidator("json", contributionCreateSchema, zodValidationHook),
   async (c) => {
-    const db = createDb(c.env.CONTRIBUTIONS_DB_BINDING);
+    const db = createDb(c.env.DCM_DB_BINDING);
     const auth = c.get("auth");
     const payload = c.req.valid("json");
 
@@ -78,7 +78,7 @@ const updateContributionHandlers = appFactory.createHandlers(
   zValidator("param", idParamSchema, zodValidationHook),
   zValidator("json", contributionUpdateSchema, zodValidationHook),
   async (c) => {
-    const db = createDb(c.env.CONTRIBUTIONS_DB_BINDING);
+    const db = createDb(c.env.DCM_DB_BINDING);
     const auth = c.get("auth");
     const { id } = c.req.valid("param");
     const payload = c.req.valid("json");
@@ -103,7 +103,7 @@ const deleteContributionHandlers = appFactory.createHandlers(
   requirePermission(API_PERMISSIONS.contributionsWrite),
   zValidator("param", idParamSchema, zodValidationHook),
   async (c) => {
-    const db = createDb(c.env.CONTRIBUTIONS_DB_BINDING);
+    const db = createDb(c.env.DCM_DB_BINDING);
     const auth = c.get("auth");
     const { id } = c.req.valid("param");
     const contributionId = Number(id);

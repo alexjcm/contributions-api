@@ -1,15 +1,15 @@
-# contributions-api
+# dcm-api
 
 Family Contributions Management API using Hono + Drizzle + Cloudflare Workers + D1.
 
 ## Authentication and Authorization (Auth0)
 - Validation of JWT RS256 access token against Auth0 JWKS.
 - Mandatory validations: `iss` (`AUTH0_ISSUER`) and `aud` (`AUTH0_AUDIENCE`).
-- Master Authorization Document: **[RBAC.md](../contributions-web/docs/RBAC.md)**.
+- Master Authorization Document: **[RBAC.md](../dcm-web/docs/RBAC.md)**.
 
 ## Environments (official)
 - `local`: development with local D1 (`--local`) and variables in `.dev.vars`.
-- `production`: canonical single remote Worker `contributions-api`.
+- `production`: canonical single remote Worker `dcm-api`.
 
 ## Migrations
 - The local migration history was consolidated into a single initial base:

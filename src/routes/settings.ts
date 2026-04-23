@@ -18,7 +18,7 @@ export const settingsRoute = createAppRoute();
 const listSettingsHandlers = appFactory.createHandlers(
   requirePermission(API_PERMISSIONS.settingsRead),
   async (c) => {
-    const db = createDb(c.env.CONTRIBUTIONS_DB_BINDING);
+    const db = createDb(c.env.DCM_DB_BINDING);
 
     const rows = await withDbReadRetry(
       async () =>
@@ -44,7 +44,7 @@ const updateSettingsHandlers = appFactory.createHandlers(
   requirePermission(API_PERMISSIONS.settingsWrite),
   zValidator("json", settingsUpdateSchema, zodValidationHook),
   async (c) => {
-    const db = createDb(c.env.CONTRIBUTIONS_DB_BINDING);
+    const db = createDb(c.env.DCM_DB_BINDING);
     const auth = c.get("auth");
     const payload = c.req.valid("json");
     const now = nowIso();

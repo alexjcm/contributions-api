@@ -40,7 +40,7 @@ const listContributorsHandlers = appFactory.createHandlers(
   requirePermission(API_PERMISSIONS.contributorsRead),
   zValidator("query", contributorsQuerySchema, zodValidationHook),
   async (c) => {
-    const db = createDb(c.env.CONTRIBUTIONS_DB_BINDING);
+    const db = createDb(c.env.DCM_DB_BINDING);
     const query = c.req.valid("query");
     const statusFilter = query.status ?? "active";
 
@@ -71,7 +71,7 @@ const createContributorHandlers = appFactory.createHandlers(
   requirePermission(API_PERMISSIONS.contributorsWrite),
   zValidator("json", contributorCreateSchema, zodValidationHook),
   async (c) => {
-    const db = createDb(c.env.CONTRIBUTIONS_DB_BINDING);
+    const db = createDb(c.env.DCM_DB_BINDING);
     const auth = c.get("auth");
     const payload = c.req.valid("json");
     const now = nowIso();
@@ -106,7 +106,7 @@ const updateContributorHandlers = appFactory.createHandlers(
   zValidator("param", idParamSchema, zodValidationHook),
   zValidator("json", contributorUpdateSchema, zodValidationHook),
   async (c) => {
-    const db = createDb(c.env.CONTRIBUTIONS_DB_BINDING);
+    const db = createDb(c.env.DCM_DB_BINDING);
     const auth = c.get("auth");
     const { id } = c.req.valid("param");
     const payload = c.req.valid("json");

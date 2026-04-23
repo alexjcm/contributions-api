@@ -19,7 +19,7 @@ app.get("/health", (c) => {
   // Keep health response minimal to avoid leaking runtime configuration.
   return c.json({
     ok: true,
-    service: "contributions-api",
+    service: "dcm-api",
     env: c.env.APP_ENV ?? "unknown"
   });
 });

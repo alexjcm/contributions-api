@@ -20,7 +20,7 @@ const getSummaryHandlers = appFactory.createHandlers(
   requirePermission(API_PERMISSIONS.summaryRead),
   zValidator("query", summaryQuerySchema, zodValidationHook),
   async (c) => {
-    const db = createDb(c.env.CONTRIBUTIONS_DB_BINDING);
+    const db = createDb(c.env.DCM_DB_BINDING);
     const query = c.req.valid("query");
 
     const year = query.year ? Number(query.year) : getCurrentBusinessYear();
