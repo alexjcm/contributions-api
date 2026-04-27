@@ -4,7 +4,7 @@ import { z } from "zod";
 import { API_PERMISSIONS } from "../config/permissions";
 import { createDb } from "../db/client";
 import { getCurrentBusinessYear } from "../lib/business-time";
-import { buildAnnualSummary, readSummarySourceData } from "../lib/summary-service";
+import { buildAnnualSummary, getMinContributionYear, readSummarySourceData } from "../lib/summary-service";
 import { success } from "../lib/responses";
 import { appFactory, createAppRoute } from "../lib/hono-factory";
 import { requirePermission } from "../middleware/require-permission";
@@ -25,9 +25,13 @@ const getSummaryHandlers = appFactory.createHandlers(
 
     const year = query.year ? Number(query.year) : getCurrentBusinessYear();
     const sourceData = await readSummarySourceData(db, year);
+    const minYear = await getMinContributionYear(db);
     const summary = buildAnnualSummary(year, sourceData);
 
-    return success(c, 200, summary);
+    return success(c, 200, {
+      ...summary,
+      minYear
+    });
   }
 );
 

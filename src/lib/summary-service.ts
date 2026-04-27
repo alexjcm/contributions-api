@@ -1,7 +1,8 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, min } from "drizzle-orm";
 
 import { createDb } from "../db/client";
 import { contributors, contributions, settings } from "../db/schema";
+import { getCurrentBusinessYear } from "./business-time";
 import { withDbReadRetry } from "./db-retry";
 import { parseMonthlyAmountCents } from "./settings";
 
@@ -13,6 +14,19 @@ type MonthlyStats = {
 };
 
 const DEFAULT_MONTHLY_AMOUNT_CENTS = 3200;
+
+export const getMinContributionYear = async (db: DbClient): Promise<number> => {
+  const result = await withDbReadRetry(
+    async () =>
+      db
+        .select({ minYear: min(contributions.year) })
+        .from(contributions)
+        .where(eq(contributions.status, 1)),
+    { label: "summary.min_year" }
+  );
+
+  return result[0]?.minYear ?? getCurrentBusinessYear();
+};
 
 export const readSummarySourceData = async (db: DbClient, year: number) => {
   const [monthlyRows, contributorRows, contributionRows] = await withDbReadRetry(

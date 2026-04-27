@@ -10,10 +10,10 @@ Both the Web app and the API keep a copy of the permission dictionary using the 
 
 | Permission | Description | Viewer | Admin | Superadmin |
 | :--- | :--- | :---: | :---: | :---: |
-| `summary:read` | View annual summary and totals | ✅ | ✅ | ✅ |
+| `summary:read` | View annual summary and totals | ❌ | ✅ | ✅ |
 | `contributions:read` | View the monthly contributions list | ✅ | ✅ | ✅ |
 | `contributors:read` | View the family member list | ✅ | ✅ | ✅ |
-| `settings:read` | View global configuration (read-only) | ✅ | ✅ | ✅ |
+| `settings:read` | View global configuration (read-only) | ❌ | ✅ | ✅ |
 | `contributions:write` | Create, edit, and delete contributions | ❌ | ✅ | ✅ |
 | `contributors:write` | Manage members (create/deactivate) | ❌ | ✅ | ✅ |
 | `settings:write` | Change the annual target and purge data | ❌ | ❌ | ✅ |
@@ -22,7 +22,7 @@ Both the Web app and the API keep a copy of the permission dictionary using the 
 
 In the Auth0 Dashboard (`User Management > Roles`), three hierarchical profiles have been defined:
 
-1. **`viewer`**: Read-only role for status and reporting access.
+1. **`viewer`**: Read-only access to contributions
 2. **`admin`**: Operational role for recording contributions and managing members.
 3. **`superadmin`**: Full-access role with permission to manage global configuration.
 

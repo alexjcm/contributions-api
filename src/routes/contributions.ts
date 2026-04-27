@@ -12,6 +12,8 @@ import {
   listContributions,
   updateContribution
 } from "../lib/contributions-service";
+import { parseMonthlyAmountCents } from "../lib/settings";
+import { getMinContributionYear, readSummarySourceData } from "../lib/summary-service";
 import { AppHttpError } from "../lib/errors";
 import { appFactory, createAppRoute } from "../lib/hono-factory";
 import { assertCanMutateContributionYear } from "../lib/period";
@@ -54,6 +56,42 @@ const listContributionsHandlers = appFactory.createHandlers(
 
     return success(c, 200, {
       items: result.items
+    });
+  }
+);
+
+const getContributionsMetaHandlers = appFactory.createHandlers(
+  requirePermission(API_PERMISSIONS.contributionsRead),
+  zValidator("query", contributionsQuerySchema, zodValidationHook),
+  async (c) => {
+    const db = createDb(c.env.DCM_DB_BINDING);
+    const query = c.req.valid("query");
+    const year = query.year ? Number(query.year) : getCurrentBusinessYear();
+ 
+    const sourceData = await readSummarySourceData(db, year);
+    const minYear = await getMinContributionYear(db);
+    const monthlyAmountCents = parseMonthlyAmountCents(sourceData.monthlyRows[0]?.value) ?? 3200;
+ 
+    // Aggregate totalPaidCents per contributor for the year
+    const statsByContributor = new Map<number, number>();
+    for (const row of sourceData.contributionRows) {
+      const current = statsByContributor.get(row.contributorId) ?? 0;
+      statsByContributor.set(row.contributorId, current + row.amountCents);
+    }
+ 
+    const contributorMeta = sourceData.contributorRows.map((contributor) => ({
+      contributorId: contributor.id,
+      name: contributor.name,
+      email: contributor.email,
+      status: contributor.status as 0 | 1,
+      totalPaidCents: statsByContributor.get(contributor.id) ?? 0
+    }));
+ 
+    return success(c, 200, {
+      year,
+      minYear,
+      monthlyAmountCents,
+      contributors: contributorMeta
     });
   }
 );
@@ -120,6 +158,7 @@ const deleteContributionHandlers = appFactory.createHandlers(
 );
 
 contributionsRoute.get("/", ...listContributionsHandlers);
+contributionsRoute.get("/meta", ...getContributionsMetaHandlers);
 contributionsRoute.post("/", ...createContributionHandlers);
 contributionsRoute.put("/:id", ...updateContributionHandlers);
 contributionsRoute.delete("/:id", ...deleteContributionHandlers);
