@@ -2,6 +2,7 @@
 export type AppBindings = Env & {
   AUTH0_AUDIENCE: string;
   AUTH0_ISSUER: string;
+  SESSION_TOKEN_SECRET: string;
 };
 
 export type AuthContext = {

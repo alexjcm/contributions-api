@@ -7,6 +7,7 @@ import { failure } from "./lib/responses";
 import { requireAuth } from "./middleware/auth";
 import { strictCors } from "./middleware/cors";
 import { basicRateLimit } from "./middleware/rate-limit";
+import { authRoute } from "./routes/auth";
 import { contributionsRoute } from "./routes/contributions";
 import { contributorsRoute } from "./routes/contributors";
 import { settingsRoute } from "./routes/settings";
@@ -36,6 +37,7 @@ app.use("/api/*", basicRateLimit);
 app.use("/api/*", requireAuth);
 
 // Keep feature routes isolated by module and mount with app.route().
+app.route("/api/auth", authRoute);
 app.route("/api/contributions", contributionsRoute);
 app.route("/api/contributors", contributorsRoute);
 app.route("/api/settings", settingsRoute);

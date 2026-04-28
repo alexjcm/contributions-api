@@ -79,13 +79,15 @@ const getContributionsMetaHandlers = appFactory.createHandlers(
       statsByContributor.set(row.contributorId, current + row.amountCents);
     }
  
-    const contributorMeta = sourceData.contributorRows.map((contributor) => ({
-      contributorId: contributor.id,
-      name: contributor.name,
-      email: contributor.email,
-      status: contributor.status as 0 | 1,
-      totalPaidCents: statsByContributor.get(contributor.id) ?? 0
-    }));
+    const contributorMeta = sourceData.contributorRows
+      .filter((contributor) => contributor.status === 1)
+      .map((contributor) => ({
+        contributorId: contributor.id,
+        name: contributor.name,
+        email: contributor.email,
+        status: contributor.status as 0 | 1,
+        totalPaidCents: statsByContributor.get(contributor.id) ?? 0
+      }));
  
     return success(c, 200, {
       year,
