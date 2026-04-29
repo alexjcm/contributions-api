@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "dcm-api",
-  "main": "src/index.ts",
+  "main": "src/NON_EXISTENT_FILE_FOR_TESTING.ts",
   // Keep runtime behavior current with platform fixes.
   "compatibility_date": "2026-04-13",
   "compatibility_flags": ["nodejs_compat"],
@@ -26,6 +26,10 @@
     "CORS_ALLOWED_ORIGINS": "https://contrib-dcm.pages.dev",
     "AUTH0_ISSUER": "https://dcm-platform.us.auth0.com/",
     "AUTH0_AUDIENCE": "https://api.dcm",
+    "AUTH0_DOMAIN": "dcm-platform.us.auth0.com",
+    "AUTH0_M2M_CLIENT_ID": "HrzHfFcshsHCvuPz9KoxU74IMPYWvHZ5",
+    "AUTH0_CONNECTION": "Username-Password-Authentication",
+    "AUTH0_M2M_AUDIENCE": "https://dcm-platform.us.auth0.com/api/v2/",
     "RATE_LIMIT_MAX": "120",
     "RATE_LIMIT_WINDOW_MS": "60000",
     // In-memory limiter cap tuned for free-tier usage.
