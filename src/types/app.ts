@@ -3,6 +3,12 @@ export type AppBindings = Env & {
   AUTH0_AUDIENCE: string;
   AUTH0_ISSUER: string;
   SESSION_TOKEN_SECRET: string;
+  
+  AUTH0_DOMAIN: string;
+  AUTH0_M2M_CLIENT_ID: string;
+  AUTH0_M2M_CLIENT_SECRET: string;
+  AUTH0_CONNECTION: string;
+  AUTH0_M2M_AUDIENCE: string;
 };
 
 export type AuthContext = {

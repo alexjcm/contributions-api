@@ -11,6 +11,7 @@ import { appFactory, createAppRoute } from "../lib/hono-factory";
 import { nowIso } from "../lib/business-time";
 import { success } from "../lib/responses";
 import { zodValidationHook } from "../lib/validator";
+import { Auth0ManagementAPI } from "../lib/auth0";
 import { requirePermission } from "../middleware/require-permission";
 
 const contributorsQuerySchema = z.object({
@@ -90,7 +91,26 @@ const createContributorHandlers = appFactory.createHandlers(
         })
         .returning();
 
-      return success(c, 201, inserted[0]);
+      const newContributor = inserted[0];
+
+      if (payload.email) {
+        try {
+          const existingUserId = await Auth0ManagementAPI.getUserByEmail(payload.email, c.env);
+          if (existingUserId) {
+            return success(c, 201, { contribuyente: newContributor, auth0: { user_id: existingUserId, existing: true } });
+          }
+
+          const newUserId = await Auth0ManagementAPI.createUser(payload.email, payload.name, c.env);
+          await Auth0ManagementAPI.sendPasswordResetEmail(payload.email, c.env);
+
+          return success(c, 201, { contribuyente: newContributor, auth0: { user_id: newUserId, email_sent: true } });
+        } catch (auth0Error) {
+          await db.delete(contributors).where(eq(contributors.id, newContributor.id));
+          throw auth0Error;
+        }
+      }
+
+      return success(c, 201, { contribuyente: newContributor });
     } catch (error) {
       if (isUniqueConstraintError(error)) {
         throw new AppHttpError(409, "EMAIL_CONFLICT", "El email ya está en uso por otro contribuyente.");
@@ -146,7 +166,53 @@ const updateContributorHandlers = appFactory.createHandlers(
         throw new AppHttpError(500, "READ_AFTER_WRITE_FAILED", "No se pudo recuperar el contribuyente actualizado.");
       }
 
-      return success(c, 200, updated);
+      let auth0ResponseData: Record<string, any> | undefined = undefined;
+
+      try {
+        if (updated.email) {
+          const existingUserId = await Auth0ManagementAPI.getUserByEmail(updated.email, c.env);
+          
+          if (existingUserId) {
+            if (existing.name !== updated.name) {
+              await Auth0ManagementAPI.updateUser(existingUserId, { name: updated.name }, c.env);
+            }
+            auth0ResponseData = { user_id: existingUserId, existing: true };
+          } else {
+            const newUserId = await Auth0ManagementAPI.createUser(updated.email, updated.name, c.env);
+            await Auth0ManagementAPI.sendPasswordResetEmail(updated.email, c.env);
+            auth0ResponseData = { user_id: newUserId, email_sent: true };
+          }
+        }
+
+        if (existing.email && existing.email !== updated.email) {
+          try {
+            const oldUserId = await Auth0ManagementAPI.getUserByEmail(existing.email, c.env);
+            if (oldUserId) {
+              await Auth0ManagementAPI.deleteUser(oldUserId, c.env);
+            }
+          } catch (cleanupError) {
+            console.error(`[Auth0] Orphan cleanup failed for ${existing.email}:`, cleanupError);
+          }
+        }
+      } catch (auth0Error) {
+        // Compensación (Rollback) local
+        await db
+          .update(contributors)
+          .set({
+            name: existing.name,
+            email: existing.email,
+            status: existing.status,
+            updatedAt: existing.updatedAt,
+            updatedBy: existing.updatedBy
+          })
+          .where(eq(contributors.id, contributorId));
+        throw auth0Error;
+      }
+
+      if (auth0ResponseData) {
+        return success(c, 200, { contribuyente: updated, auth0: auth0ResponseData });
+      }
+      return success(c, 200, { contribuyente: updated });
     } catch (error) {
       if (isUniqueConstraintError(error)) {
         throw new AppHttpError(409, "EMAIL_CONFLICT", "El email ya está en uso por otro contribuyente.");

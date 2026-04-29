@@ -9,3 +9,12 @@ RATE_LIMIT_MAX=120
 RATE_LIMIT_WINDOW_MS=60000
 RATE_LIMIT_MAX_BUCKETS=5000
 
+SESSION_TOKEN_SECRET=...
+
+
+# Auth0 - Integración Machine to Machine (M2M). Permite a la API Hono gestionar usuarios en Auth0
+AUTH0_DOMAIN=dev-mz3wmzwe2532icvg.us.auth0.com
+AUTH0_M2M_CLIENT_ID=...
+AUTH0_M2M_CLIENT_SECRET=...
+AUTH0_CONNECTION=Username-Password-Authentication
+AUTH0_M2M_AUDIENCE=https://dev-mz3wmzwe2532icvg.us.auth0.com/api/v2/
