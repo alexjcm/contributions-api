@@ -5,7 +5,8 @@
     <meta name="x-apple-disable-message-reformatting" />
   </head>
   <div style="display:none;overflow:hidden;line-height:1px;opacity:0;max-height:0;max-width:0">
-    Has solicitado un cambio de contraseña.
+    {% if user.app_metadata.dcm_password_setup_pending == true %}Tu acceso a DCM ya está listo. Define tu
+    contraseña para activar tu cuenta.{% else %}Has solicitado restablecer tu contraseña.{% endif %}
   </div>
 
   <body
@@ -69,7 +70,8 @@
                     <h1
                       style="padding:0px;text-align:center;font-size:1.5rem;line-height:2rem;font-weight:600;color:rgb(23,23,23)"
                     >
-                      Has solicitado un cambio de contraseña.
+                      {% if user.app_metadata.dcm_password_setup_pending == true %}Activa tu cuenta de DCM{% else
+                      %}Restablece tu contraseña{% endif %}
                     </h1>
                     <hr
                       style="margin-top:0.75rem;margin-bottom:1.5rem;border-width:1px;border-color:rgb(212,212,212);width:100%;border:none;border-top:1px solid #eaeaea"
@@ -93,7 +95,16 @@
                     <p
                       style="margin-top:1.5rem;margin-bottom:1.5rem;text-align:center;font-size:1rem;line-height:1.5rem;color:rgb(23,23,23);margin:16px 0"
                     >
-                      Si fuiste tú, confirma el cambio de contraseña
+                      {% if user.app_metadata.dcm_password_setup_pending == true %}Se creó una cuenta para ti en
+                      DCM. Usa este enlace para definir tu contraseña inicial y activar tu acceso.{% else %}Usa este
+                      enlace para restablecer tu contraseña.{% endif %}
+                    </p>
+                    <p
+                      style="margin-top:0.75rem;margin-bottom:1.5rem;text-align:center;font-size:0.875rem;line-height:1.5rem;color:rgb(82,82,82);margin:16px 0"
+                    >
+                      {% if user.app_metadata.dcm_password_setup_pending == true %}Si no esperabas este correo, no
+                      realices ninguna acción y contacta con soporte.{% else %}Si no solicitaste este cambio, puedes
+                      ignorar este correo o contactar con soporte si tienes dudas.{% endif %}
                     </p>
                     <table
                       align="center"
@@ -144,7 +155,8 @@
                                 [endif]--></span
                               ><span
                                 style="max-width:100%;display:inline-block;line-height:120%;mso-padding-alt:0px;mso-text-raise:6px"
-                                >Confirmar</span
+                                >{% if user.app_metadata.dcm_password_setup_pending == true %}Activar cuenta{% else
+                                %}Restablecer contraseña{% endif %}</span
                               ><span
                                 ><!--[if mso
                                   ]><i style="mso-font-width:300%" hidden>&#8202;&#8202;&#8203;</i><!
@@ -179,7 +191,7 @@
                       style="text-align:center;font-size:0.75rem;line-height:1rem;color:rgb(163,163,163);margin:16px 0"
                     >
                       Recibes este correo porque tienes una cuenta en<!-- -->
-                      <!-- -->{{ friendly_name | escape }}<!-- -->. Si no sabes por qué lo recibiste,
+                      <!-- -->{{ friendly_name | escape }}<!-- -->. Si no sabes por qué lo recibiste o necesitas ayuda,
                       contáctanos<!-- -->{% if support_url != blank %}
                       <!-- -->
                       a través de nuestro<!-- -->

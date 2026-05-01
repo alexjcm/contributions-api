@@ -28,6 +28,7 @@
     "AUTH0_AUDIENCE": "https://api.dcm",
     "AUTH0_DOMAIN": "dcm-platform.us.auth0.com",
     "AUTH0_M2M_CLIENT_ID": "HrzHfFcshsHCvuPz9KoxU74IMPYWvHZ5",
+    "AUTH0_SPA_CLIENT_ID": "mExS1ikjUCfHTDxHW0OtgSodxyCaVphZ",
     "AUTH0_CONNECTION": "Username-Password-Authentication",
     "AUTH0_M2M_AUDIENCE": "https://dcm-platform.us.auth0.com/api/v2/",
     "RATE_LIMIT_MAX": "120",

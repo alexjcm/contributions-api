@@ -6,7 +6,7 @@ Family Contributions Management API using Hono + Drizzle + Cloudflare Workers + 
 - Validation of JWT RS256 access token against Auth0 JWKS.
 - Mandatory validations: `iss` (`AUTH0_ISSUER`) and `aud` (`AUTH0_AUDIENCE`).
 - Master Authorization Document: **[RBAC.md](./docs/RBAC.md)**.
-- Versioned tenant-facing Auth0 assets for manual operations or export/import reference live in `auth0-tenant-config/`.
+- Versioned tenant-facing Auth0 assets for manual operations or export/import reference live in `auth0-tenant-config/`, including tenant Actions, email HTML, and the versioned reset-email subject text.
 
 ## Environments (official)
 - `local`: development with local D1 (`--local`) and variables in `.dev.vars`.

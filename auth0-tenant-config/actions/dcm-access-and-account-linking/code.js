@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 
 const ACCOUNT_LINKING_TIMESTAMP_KEY = 'account_linking_timestamp';
 const DCM_MANAGED_APP_METADATA_KEY = 'dcm_managed';
+const DCM_PASSWORD_SETUP_PENDING_APP_METADATA_KEY = 'dcm_password_setup_pending';
 const NAMESPACE = 'https://api.dcm';
 
 const log = (context, data) => {
@@ -71,14 +72,14 @@ const getManagementAccessToken = async (event, api) => {
 };
 
 const managementFetchJson = async (event, token, path, init) => {
-  const response = await fetch(`https://${event.secrets.AUTH0_DOMAIN}/api/v2${path}`, {
+  const response = /** @type {any} */ (await fetch(`https://${event.secrets.AUTH0_DOMAIN}/api/v2${path}`, {
     ...init,
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
       ...(init?.headers || {}),
     },
-  });
+  }));
 
   if (!response.ok) {
     let detail = response.statusText;
@@ -101,6 +102,27 @@ const managementFetchJson = async (event, token, path, init) => {
 const getRolesForUser = async (event, token, userId) => {
   const roles = await managementFetchJson(event, token, `/users/${encodeURIComponent(userId)}/roles`);
   return Array.isArray(roles) ? roles.map((role) => role.name).filter(Boolean) : [];
+};
+
+const clearPasswordSetupPendingFlag = async (event, token) => {
+  if (event.user.last_password_reset == null) {
+    return;
+  }
+
+  const appMetadata = event.user.app_metadata || {};
+  if (appMetadata[DCM_PASSWORD_SETUP_PENDING_APP_METADATA_KEY] !== true) {
+    return;
+  }
+
+  const updatedMetadata = { ...appMetadata };
+  delete updatedMetadata[DCM_PASSWORD_SETUP_PENDING_APP_METADATA_KEY];
+
+  await managementFetchJson(event, token, `/users/${encodeURIComponent(event.user.user_id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      app_metadata: updatedMetadata,
+    }),
+  });
 };
 
 const getCanonicalLinkCandidate = (users, currentUserId) => {
@@ -151,6 +173,7 @@ exports.onExecutePostLogin = async (event, api) => {
 
   try {
     const token = await getManagementAccessToken(event, api);
+    await clearPasswordSetupPendingFlag(event, token);
     const users = await managementFetchJson(
       event,
       token,
@@ -228,7 +251,7 @@ exports.onContinuePostLogin = async (event, api) => {
       return api.access.deny('La identidad secundaria no es válida para Auth0.');
     }
 
-    const linkResponse = await fetch(
+    const linkResponse = /** @type {any} */ (await fetch(
       `https://${event.secrets.AUTH0_DOMAIN}/api/v2/users/${encodeURIComponent(primaryIdentity.user_id)}/identities`,
       {
         method: 'POST',
@@ -241,7 +264,7 @@ exports.onContinuePostLogin = async (event, api) => {
           user_id: secondaryProviderUserId,
         }),
       }
-    );
+    ));
 
     if (!linkResponse.ok && linkResponse.status !== 409) {
       let detail = linkResponse.statusText;

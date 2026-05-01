@@ -2,6 +2,7 @@ import { AppHttpError } from "./errors";
 import type { AppBindings } from "../types/app";
 
 export const DCM_MANAGED_APP_METADATA_KEY = "dcm_managed";
+export const DCM_PASSWORD_SETUP_PENDING_APP_METADATA_KEY = "dcm_password_setup_pending";
 
 type Auth0TokenResponse = {
   access_token?: string;
@@ -274,7 +275,8 @@ export class Auth0ManagementAPI {
           password: generateSecureTempPassword(),
           verify_email: false,
           app_metadata: {
-            [DCM_MANAGED_APP_METADATA_KEY]: true
+            [DCM_MANAGED_APP_METADATA_KEY]: true,
+            [DCM_PASSWORD_SETUP_PENDING_APP_METADATA_KEY]: true
           }
         })
       }
@@ -321,7 +323,7 @@ export class Auth0ManagementAPI {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        client_id: env.AUTH0_M2M_CLIENT_ID,
+        client_id: env.AUTH0_SPA_CLIENT_ID,
         email,
         connection: env.AUTH0_CONNECTION
       })
