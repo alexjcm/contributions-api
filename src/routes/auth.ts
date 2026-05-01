@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { sign } from 'hono/jwt'
+import { sign, verify } from 'hono/jwt'
 import { AppHttpError } from '../lib/errors'
 import type { AppBindings, AppVariables } from '../types/app'
 
@@ -16,11 +16,10 @@ authRoute.post('/link-token', async (c) => {
     throw new AppHttpError(400, 'BAD_REQUEST', 'Parámetros incompletos')
   }
 
-  // 1. Decodificar el sessionToken de Auth0
+  // 1. Verificar el sessionToken emitido por la Action de Auth0
   let payload: any
   try {
-    const [, b64] = sessionToken.split('.')
-    payload = JSON.parse(atob(b64))
+    payload = await verify(sessionToken, secret, 'HS256')
   } catch (e) {
     throw new AppHttpError(400, 'BAD_REQUEST', 'Token de sesión inválido')
   }

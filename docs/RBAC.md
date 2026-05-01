@@ -10,10 +10,10 @@ Both the Web app and the API keep a copy of the permission dictionary using the 
 
 | Permission | Description | Viewer | Admin | Superadmin |
 | :--- | :--- | :---: | :---: | :---: |
-| `summary:read` | View annual summary and totals | ❌ | ✅ | ✅ |
+| `summary:read` | View annual summary and totals | ✅ | ✅ | ✅ |
 | `contributions:read` | View the monthly contributions list | ✅ | ✅ | ✅ |
 | `contributors:read` | View the family member list | ✅ | ✅ | ✅ |
-| `settings:read` | View global configuration (read-only) | ❌ | ✅ | ✅ |
+| `settings:read` | Read global configuration from the API | ✅ | ✅ | ✅ |
 | `contributions:write` | Create, edit, and delete contributions | ❌ | ✅ | ✅ |
 | `contributors:write` | Manage members (create/deactivate) | ❌ | ✅ | ✅ |
 | `settings:write` | Change the annual target and purge data | ❌ | ❌ | ✅ |
@@ -25,6 +25,12 @@ In the Auth0 Dashboard (`User Management > Roles`), three hierarchical profiles 
 1. **`viewer`**: Read-only access to contributions
 2. **`admin`**: Operational role for recording contributions and managing members.
 3. **`superadmin`**: Full-access role with permission to manage global configuration.
+
+### Contributor lifecycle note
+
+- Auth0 is also the source of truth for contributor access lifecycle.
+- When a contributor is deactivated and auto-sync is enabled, the user is not deleted in Auth0; the backend leaves only the `viewer` role.
+- The Auth0 tenant is exclusive to DCM, so that role downgrade is not expected to affect other apps.
 
 ---
 
@@ -38,6 +44,12 @@ The middleware verifies the token signature against Auth0 public keys (`.well-kn
 ### Route Protection Layer
 Protected routes use middleware that validates the presence of the required permission before executing business logic.
 
+### Identity and linking
+
+- The API validates JWTs and lifecycle operations independently.
+- Account linking remains explicit and is handled through the Auth0 login Action plus `POST /api/auth/link-token`.
+- The backend does not auto-link accounts just because emails match.
+
 ---
 
 ## 3. Frontend Implementation (`dcm-web`)
@@ -46,6 +58,11 @@ The frontend hides components and blocks routes to improve UX, assuming that the
 
 ### Permission Extraction
 During sign-in, the SPA extracts permissions from the Access Token and stores them in `AppContext` for global use through the `hasPermission()` function.
+
+### UX note about settings
+
+- The frontend reserves the Settings screen for `settings:write`.
+- Even though `settings:read` exists in the API permission model, the current UI does not expose a read-only settings screen for `viewer`.
 
 ### Business Rule: Time-Based Restriction
 In addition to the `contributions:write` permission, the Frontend applies a time-based rule: data can only be edited when the active year in the interface matches the current business year. This helps prevent accidental changes to data from previous years.

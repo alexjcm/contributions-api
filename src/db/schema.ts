@@ -1,6 +1,9 @@
 import { sql } from "drizzle-orm";
 import { check, index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
+export const AUTH0_SYNC_STATUSES = ["unknown_legacy", "not_linked", "pending_password", "linked", "no_access", "error"] as const;
+export type Auth0SyncStatus = (typeof AUTH0_SYNC_STATUSES)[number];
+
 export const contributors = sqliteTable(
   "contributors",
   {
@@ -8,6 +11,10 @@ export const contributors = sqliteTable(
     name: text("name").notNull(),
     email: text("email"),
     status: integer("status").notNull().default(1),
+    auth0SyncStatus: text("auth0_sync_status", { enum: AUTH0_SYNC_STATUSES }).notNull().default("not_linked"),
+    auth0UserId: text("auth0_user_id"),
+    auth0LastSyncAt: text("auth0_last_sync_at"),
+    auth0LastError: text("auth0_last_error"),
     createdAt: text("created_at").notNull(),
     createdBy: text("created_by").notNull(),
     updatedAt: text("updated_at").notNull(),
@@ -16,6 +23,10 @@ export const contributors = sqliteTable(
   (table) => {
     return [
       check("contributors_status_check", sql`${table.status} in (0, 1)`),
+      check(
+        "contributors_auth0_sync_status_check",
+        sql`${table.auth0SyncStatus} in ('unknown_legacy', 'not_linked', 'pending_password', 'linked', 'no_access', 'error')`
+      ),
       uniqueIndex("contributors_email_unique_non_null")
         .on(table.email)
         .where(sql`${table.email} is not null`)

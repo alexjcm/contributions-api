@@ -1,0 +1,26 @@
+{
+  "name": "admin",
+  "description": "Can manage contributions for allowed periods plus read access",
+  "permissions": [
+    {
+      "permission_name": "contributions:read",
+      "resource_server_identifier": "https://api.dcm"
+    },
+    {
+      "permission_name": "contributions:write",
+      "resource_server_identifier": "https://api.dcm"
+    },
+    {
+      "permission_name": "contributors:read",
+      "resource_server_identifier": "https://api.dcm"
+    },
+    {
+      "permission_name": "settings:read",
+      "resource_server_identifier": "https://api.dcm"
+    },
+    {
+      "permission_name": "summary:read",
+      "resource_server_identifier": "https://api.dcm"
+    }
+  ]
+}

@@ -7,9 +7,21 @@ This repo operates only with:
 
 ## Repository migration state
 
-- The repo maintains a single consolidated base migration:
+- The repo currently maintains:
   - `migrations/0000_initial_schema.sql`
-- This migration already reflects the current schema for `contributors`, `contributions`, and `settings`.
+  - `migrations/0001_auth0_contributor_sync.sql`
+- The Auth0-related migrations extend `contributors` with:
+  - `auth0_sync_status`
+  - `auth0_user_id`
+  - `auth0_last_sync_at`
+  - `auth0_last_error`
+- Current valid sync statuses are:
+  - `unknown_legacy`
+  - `not_linked`
+  - `pending_password`
+  - `linked`
+  - `no_access`
+  - `error`
 
 ## Apply migrations
 
@@ -50,5 +62,5 @@ npm run d1:restore:local -- --file ./.wrangler/d1-snapshots/<file>.sql
 ```
 
 ## Note
-- The initial migration is in `migrations/0000_initial_schema.sql`.
+- The initial migration is in `migrations/0000_initial_schema.sql`, and Auth0 lifecycle changes are consolidated in `0001`.
 - Current data access uses `drizzle-orm/d1` directly; an additional adapter layer is not maintained because it currently adds no real value to the project.

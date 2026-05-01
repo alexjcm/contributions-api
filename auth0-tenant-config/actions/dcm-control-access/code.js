@@ -171,7 +171,6 @@ exports.onExecutePostLogin = async (event, api) => {
           provider: event.connection.strategy,
           connection: event.connection.name,
         },
-        email: event.user.email,
         continue_url: `https://${event.request.hostname}/continue`,
         candidate_identities: [candidate],
       },

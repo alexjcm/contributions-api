@@ -1,0 +1,14 @@
+{
+  "name": "viewer",
+  "description": "Read-only access to contributions",
+  "permissions": [
+    {
+      "permission_name": "contributions:read",
+      "resource_server_identifier": "https://api.dcm"
+    },
+    {
+      "permission_name": "contributors:read",
+      "resource_server_identifier": "https://api.dcm"
+    }
+  ]
+}

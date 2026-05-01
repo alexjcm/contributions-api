@@ -1,0 +1,34 @@
+{
+  "name": "superadmin",
+  "description": "Full access to contributions contributors and settings",
+  "permissions": [
+    {
+      "permission_name": "contributions:read",
+      "resource_server_identifier": "https://api.dcm"
+    },
+    {
+      "permission_name": "contributions:write",
+      "resource_server_identifier": "https://api.dcm"
+    },
+    {
+      "permission_name": "contributors:read",
+      "resource_server_identifier": "https://api.dcm"
+    },
+    {
+      "permission_name": "contributors:write",
+      "resource_server_identifier": "https://api.dcm"
+    },
+    {
+      "permission_name": "settings:read",
+      "resource_server_identifier": "https://api.dcm"
+    },
+    {
+      "permission_name": "settings:write",
+      "resource_server_identifier": "https://api.dcm"
+    },
+    {
+      "permission_name": "summary:read",
+      "resource_server_identifier": "https://api.dcm"
+    }
+  ]
+}
