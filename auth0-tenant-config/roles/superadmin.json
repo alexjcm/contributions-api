@@ -27,6 +27,10 @@
       "resource_server_identifier": "https://api.dcm"
     },
     {
+      "permission_name": "auth0_sync:write",
+      "resource_server_identifier": "https://api.dcm"
+    },
+    {
       "permission_name": "summary:read",
       "resource_server_identifier": "https://api.dcm"
     }

@@ -6,5 +6,8 @@ Core application code lives in `src/`. Use `src/routes/` for Hono endpoints, `sr
 ## Build, Test, and Development Commands
 Install dependencies with `npm install` on Node `>=24 <25`. Use `npm run dev` to start the Worker locally with `wrangler.dev.jsonc` and local D1 bindings. Run `npm run typecheck` before opening a PR. Regenerate Worker binding types with `npm run types:wrangler` after changing `wrangler*.jsonc`. For schema work, use `npm run d1:generate`, `npm run d1:check`, and `npm run d1:migrate:local`. To reset local data, use `npm run d1:bootstrap:local`.
 
+## Production Database Safety
+Never execute scripts, migrations, seed commands, inspection commands, or ad hoc queries against the production D1 database unless the user explicitly requests it in that specific turn. By default, all database operations must target the local D1 database only.
+
 ## Coding Style & Naming Conventions
 This repository uses strict TypeScript with ES modules. Follow the route layout documented in `CONTRIBUTING.md`: imports, Zod schemas, internal helpers, exported route instance, handlers, then endpoint registration. Keep route-specific validation and middleware close to the handler. Prefer `success(...)` and `failure(...)` response helpers over ad hoc JSON. Use descriptive camelCase for variables and functions, PascalCase for types, and keep filenames lowercase with hyphens only where the repo already does so, for example `require-permission.ts`.

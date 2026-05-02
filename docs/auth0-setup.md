@@ -24,11 +24,12 @@
    - `contributors:write`
    - `settings:read`
    - `settings:write`
+   - `auth0_sync:write`
 
 3. Create Roles (`User Management > Roles`) and assign permissions:
-   - `viewer`: `summary:read`, `contributions:read`, `contributors:read`, `settings:read`
-   - `admin`: `viewer` permissions + `contributions:write`
-   - `superadmin`: All permissions
+   - `viewer`: `summary:read`, `contributions:read`, `contributors:read`
+   - `admin`: `viewer` permissions + `contributions:write`, `contributors:write`, `settings:read`, `settings:write`
+   - `superadmin`: Same permissions as `admin`, plus `auth0_sync:write`
 
 4. Assign roles to users.
 
@@ -91,3 +92,6 @@
   - Primary: `permissions` claim
   - Fallback: `scope` claim
 - Permission constants are defined in `src/config/permissions.ts`.
+- `PUT /api/settings` is authorized by setting key:
+  - `monthly_amount_cents` requires `settings:write`
+  - `auth0_auto_sync_enabled` requires `auth0_sync:write`

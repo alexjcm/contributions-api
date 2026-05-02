@@ -41,13 +41,23 @@ const listSettingsHandlers = appFactory.createHandlers(
 );
 
 const updateSettingsHandlers = appFactory.createHandlers(
-  requirePermission(API_PERMISSIONS.settingsWrite),
   zValidator("json", settingsUpdateSchema, zodValidationHook),
   async (c) => {
     const db = createDb(c.env.DCM_DB_BINDING);
     const auth = c.get("auth");
     const payload = c.req.valid("json");
     const now = nowIso();
+    const hasPermission = (permission: (typeof API_PERMISSIONS)[keyof typeof API_PERMISSIONS]): boolean => {
+      return auth.permissions.has(permission);
+    };
+
+    if (payload.key === "monthly_amount_cents" && !hasPermission(API_PERMISSIONS.settingsWrite)) {
+      throw new AppHttpError(403, "FORBIDDEN", "No tienes permisos para actualizar el monto base mensual.");
+    }
+
+    if (payload.key === "auth0_auto_sync_enabled" && !hasPermission(API_PERMISSIONS.auth0SyncWrite)) {
+      throw new AppHttpError(403, "FORBIDDEN", "No tienes permisos para modificar la sincronización automática con Auth0.");
+    }
 
     const existingRows = await db
       .select()

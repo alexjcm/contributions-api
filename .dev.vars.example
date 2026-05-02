@@ -16,11 +16,13 @@ SESSION_TOKEN_SECRET=...
 AUTH0_DOMAIN=dcm-platform.us.auth0.com
 AUTH0_M2M_CLIENT_ID=...
 AUTH0_M2M_CLIENT_SECRET=...
-# El flujo UX completo de retorno post-reset aplica solo a producción.
-# Mantén este binding también en local para que el código y los tipos sigan alineados,
-# pero no esperes la misma experiencia final porque Auth0 no admite localhost
-# como Application Login URI.
-AUTH0_SPA_CLIENT_ID=...
 AUTH0_CONNECTION=Username-Password-Authentication
 AUTH0_M2M_AUDIENCE=https://dcm-platform.us.auth0.com/api/v2/
-AUTH0_VIEWER_ROLE_ID=...
+AUTH0_VIEWER_ROLE_ID=rol_xxxxxxxx
+
+# SPA Client ID used by Auth0 for interactive password setup/reset flows.
+# This must match the SPA whose Settings > Application URIs > Application Login URI
+# defines where Auth0 sends the user after a successful password change.
+# In local development, point this to the development SPA; in production, to the production SPA.
+# The full post-reset return flow only works on real HTTPS environments, not localhost.
+AUTH0_SPA_CLIENT_ID=...

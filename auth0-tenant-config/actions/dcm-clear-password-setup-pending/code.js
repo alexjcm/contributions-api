@@ -55,19 +55,23 @@ const managementFetchJson = async (event, token, path, init) => {
 
 exports.onExecutePostChangePassword = async (event) => {
   try {
+    console.log('[dcm-clear-password-setup-pending] post_change_password_started', {
+      user_id: event.user.user_id,
+      has_last_password_reset: event.user.last_password_reset != null,
+    });
+
     const appMetadata = event.user.app_metadata || {};
     if (appMetadata[DCM_PASSWORD_SETUP_PENDING_APP_METADATA_KEY] !== true) {
       return;
     }
 
-    const updatedMetadata = { ...appMetadata };
-    delete updatedMetadata[DCM_PASSWORD_SETUP_PENDING_APP_METADATA_KEY];
-
     const token = await getManagementAccessToken(event);
     await managementFetchJson(event, token, `/users/${encodeURIComponent(event.user.user_id)}`, {
       method: 'PATCH',
       body: JSON.stringify({
-        app_metadata: updatedMetadata,
+        app_metadata: {
+          [DCM_PASSWORD_SETUP_PENDING_APP_METADATA_KEY]: null,
+        },
       }),
     });
   } catch (error) {

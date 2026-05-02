@@ -104,7 +104,7 @@ const getRolesForUser = async (event, token, userId) => {
   return Array.isArray(roles) ? roles.map((role) => role.name).filter(Boolean) : [];
 };
 
-const clearPasswordSetupPendingFlag = async (event, token) => {
+const clearPasswordSetupPendingFlag = async (event, api) => {
   if (event.user.last_password_reset == null) {
     return;
   }
@@ -114,15 +114,7 @@ const clearPasswordSetupPendingFlag = async (event, token) => {
     return;
   }
 
-  const updatedMetadata = { ...appMetadata };
-  delete updatedMetadata[DCM_PASSWORD_SETUP_PENDING_APP_METADATA_KEY];
-
-  await managementFetchJson(event, token, `/users/${encodeURIComponent(event.user.user_id)}`, {
-    method: 'PATCH',
-    body: JSON.stringify({
-      app_metadata: updatedMetadata,
-    }),
-  });
+  api.user.setAppMetadata(DCM_PASSWORD_SETUP_PENDING_APP_METADATA_KEY, null);
 };
 
 const getCanonicalLinkCandidate = (users, currentUserId) => {
@@ -159,6 +151,20 @@ const getCanonicalLinkCandidate = (users, currentUserId) => {
 exports.onExecutePostLogin = async (event, api) => {
   const roles = event.authorization?.roles ?? [];
 
+  log('post_login_started', {
+    user_id: event.user.user_id,
+    strategy: event.connection?.strategy,
+    has_last_password_reset: event.user.last_password_reset != null,
+    password_setup_pending: event.user.app_metadata?.[DCM_PASSWORD_SETUP_PENDING_APP_METADATA_KEY] === true,
+  });
+
+  try {
+    await clearPasswordSetupPendingFlag(event, api);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    log('password_setup_cleanup_failed', { message, user_id: event.user.user_id });
+  }
+
   if (shouldSkipLinking(event)) {
     return applyStandardRbac(event, api, roles);
   }
@@ -173,7 +179,6 @@ exports.onExecutePostLogin = async (event, api) => {
 
   try {
     const token = await getManagementAccessToken(event, api);
-    await clearPasswordSetupPendingFlag(event, token);
     const users = await managementFetchJson(
       event,
       token,

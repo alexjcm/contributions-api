@@ -55,11 +55,12 @@ npm run d1:bootstrap:local
 
 #### Technical Tools (`tools/`)
 The `tools/` directory contains automation scripts for data flows:
-- `d1-reset-local.sh`: Purges the local database and applies all migrations from scratch.
-- `d1-seed-local.sh`: Inserts test data (contributors, initial contributions).
-- `d1-snapshot-local.sh`: Creates a `.sql` backup of the current state of your local DB in `.wrangler/d1-snapshots/`.
-- `d1-restore-local.sh`: Allows restoring a specific snapshot.
-- `smoke-rbac-production.sh`: Runs smoke tests against the production API to validate that Auth0 permissions are correctly mapped.
+- `tools/local/d1/reset.sh`: Purges the local database and applies all migrations from scratch.
+- `tools/local/d1/seed.sh`: Inserts sample test data for local development.
+- `tools/local/d1/snapshot.sh`: Creates a `.sql` backup of the current state of your local DB in `.wrangler/d1-snapshots/`.
+- `tools/local/d1/restore.sh`: Allows restoring a specific local snapshot.
+- `tools/local/d1/inspect.sh`: Inspects the local D1 database only.
+- `tools/production/smoke-rbac.sh`: Runs smoke tests against the production API to validate that Auth0 permissions are correctly mapped.
 
 ### Schema (Drizzle)
 ```bash
@@ -88,14 +89,11 @@ npm run deploy
 
 ### Migrations
 ```bash
-npm run d1:migrate:prod
+npx wrangler d1 migrations apply DCM_DB_BINDING --remote
 ```
 
-### Inspection and Smoke Tests
+### Smoke Tests
 ```bash
-# Inspect remote DB status
-npm run tool:d1:inspect:prod
-
 # Production RBAC smoke test
-npm run tool:smoke:rbac:prod
+./tools/production/smoke-rbac.sh
 ```

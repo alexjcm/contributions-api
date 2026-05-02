@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "dff698e3-0357-428e-a6f8-2ed842c4f8af",
+  "id": "6c16de6a-7621-4303-b2f6-43be9227a62b",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "contributions": {
@@ -163,6 +163,35 @@
           "autoincrement": false,
           "default": 1
         },
+        "auth0_sync_status": {
+          "name": "auth0_sync_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'not_linked'"
+        },
+        "auth0_user_id": {
+          "name": "auth0_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "auth0_last_sync_at": {
+          "name": "auth0_last_sync_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "auth0_last_error": {
+          "name": "auth0_last_error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "text",
@@ -209,6 +238,10 @@
         "contributors_status_check": {
           "name": "contributors_status_check",
           "value": "\"contributors\".\"status\" in (0, 1)"
+        },
+        "contributors_auth0_sync_status_check": {
+          "name": "contributors_auth0_sync_status_check",
+          "value": "\"contributors\".\"auth0_sync_status\" in ('unknown_legacy', 'not_linked', 'pending_password', 'linked', 'no_access', 'error')"
         }
       }
     },
@@ -268,6 +301,7 @@
   "views": {},
   "enums": {},
   "_meta": {
+    "schemas": {},
     "tables": {},
     "columns": {}
   },

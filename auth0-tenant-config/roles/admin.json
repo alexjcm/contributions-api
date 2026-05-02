@@ -15,6 +15,10 @@
       "resource_server_identifier": "https://api.dcm"
     },
     {
+      "permission_name": "contributors:write",
+      "resource_server_identifier": "https://api.dcm"
+    },
+    {
       "permission_name": "settings:read",
       "resource_server_identifier": "https://api.dcm"
     },

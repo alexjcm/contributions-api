@@ -80,14 +80,22 @@ const getContributionsMetaHandlers = appFactory.createHandlers(
     }
  
     const contributorMeta = sourceData.contributorRows
-      .filter((contributor) => contributor.status === 1)
-      .map((contributor) => ({
-        contributorId: contributor.id,
-        name: contributor.name,
-        email: contributor.email,
-        status: contributor.status as 0 | 1,
-        totalPaidCents: statsByContributor.get(contributor.id) ?? 0
-      }));
+      .map((contributor) => {
+        const totalPaidCents = statsByContributor.get(contributor.id) ?? 0;
+
+        if (contributor.status === 0 && totalPaidCents === 0) {
+          return null;
+        }
+
+        return {
+          contributorId: contributor.id,
+          name: contributor.name,
+          email: contributor.email,
+          status: contributor.status as 0 | 1,
+          totalPaidCents
+        };
+      })
+      .filter((contributor): contributor is NonNullable<typeof contributor> => contributor !== null);
  
     return success(c, 200, {
       year,

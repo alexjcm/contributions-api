@@ -9,8 +9,7 @@ This repo operates only with:
 
 - The repo currently maintains:
   - `migrations/0000_initial_schema.sql`
-  - `migrations/0001_auth0_contributor_sync.sql`
-- The Auth0-related migrations extend `contributors` with:
+- The consolidated initial migration already includes the Auth0-related contributor lifecycle schema:
   - `auth0_sync_status`
   - `auth0_user_id`
   - `auth0_last_sync_at`
@@ -29,7 +28,7 @@ This repo operates only with:
 npm run d1:generate
 npm run d1:check          # Verify schema sync
 npm run d1:migrate:local  # Apply to local DB
-npm run d1:migrate:prod   # Apply to Cloudflare (remote)
+npx wrangler d1 migrations apply DCM_DB_BINDING --remote  # Apply to Cloudflare (remote)
 ```
 
 ## Recommended local workflow (DX)
@@ -61,6 +60,8 @@ npm run d1:snapshot:local
 npm run d1:restore:local -- --file ./.wrangler/d1-snapshots/<file>.sql
 ```
 
+Local-only helper scripts live under `tools/local/d1/`, and the sample SQL data lives under `tools/local/d1/sql/sample-data/`.
+
 ## Note
-- The initial migration is in `migrations/0000_initial_schema.sql`, and Auth0 lifecycle changes are consolidated in `0001`.
+- The initial migration is fully consolidated in `migrations/0000_initial_schema.sql`.
 - Current data access uses `drizzle-orm/d1` directly; an additional adapter layer is not maintained because it currently adds no real value to the project.

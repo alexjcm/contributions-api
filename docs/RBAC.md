@@ -13,18 +13,19 @@ Both the Web app and the API keep a copy of the permission dictionary using the 
 | `summary:read` | View annual summary and totals | ✅ | ✅ | ✅ |
 | `contributions:read` | View the monthly contributions list | ✅ | ✅ | ✅ |
 | `contributors:read` | View the family member list | ✅ | ✅ | ✅ |
-| `settings:read` | Read global configuration from the API | ✅ | ✅ | ✅ |
+| `settings:read` | Read global configuration from the API | ❌ | ✅ | ✅ |
 | `contributions:write` | Create, edit, and delete contributions | ❌ | ✅ | ✅ |
 | `contributors:write` | Manage members (create/deactivate) | ❌ | ✅ | ✅ |
-| `settings:write` | Change the annual target and purge data | ❌ | ❌ | ✅ |
+| `settings:write` | Update editable global settings such as the monthly base amount | ❌ | ✅ | ✅ |
+| `auth0_sync:write` | Toggle the global automatic contributor synchronization with Auth0 | ❌ | ❌ | ✅ |
 
 ### Role Definitions (Auth0)
 
 In the Auth0 Dashboard (`User Management > Roles`), three hierarchical profiles have been defined:
 
-1. **`viewer`**: Read-only access to contributions
-2. **`admin`**: Operational role for recording contributions and managing members.
-3. **`superadmin`**: Full-access role with permission to manage global configuration.
+1. **`viewer`**: Read-only access to contributions, contributors, and summary.
+2. **`admin`**: Operational role for recording contributions, managing contributors, and updating global settings.
+3. **`superadmin`**: Same operational permissions as `admin`, plus control over Auth0 auto-sync behavior.
 
 ### Contributor lifecycle note
 
@@ -61,8 +62,10 @@ During sign-in, the SPA extracts permissions from the Access Token and stores th
 
 ### UX note about settings
 
-- The frontend reserves the Settings screen for `settings:write`.
-- Even though `settings:read` exists in the API permission model, the current UI does not expose a read-only settings screen for `viewer`.
+- The frontend exposes the Settings screen only to users with `settings:read`.
+- `admin` can view the Settings screen and update the sections covered by `contributors:write` and `settings:write`, but cannot toggle Auth0 auto-sync.
+- `superadmin` can also modify the global Auth0 auto-sync toggle through `auth0_sync:write`.
+- `viewer` does not have `settings:read` and therefore does not see the Settings screen.
 
 ### Business Rule: Time-Based Restriction
 In addition to the `contributions:write` permission, the Frontend applies a time-based rule: data can only be edited when the active year in the interface matches the current business year. This helps prevent accidental changes to data from previous years.
@@ -84,8 +87,8 @@ To guarantee that RBAC is correctly enforced, follow this verification flow afte
 
 ### Manual Verification (UX)
 1. **Login as `viewer`**: Verify only read access (summary, contributions, contributors). Write buttons should be hidden.
-2. **Login as `admin`**: Verify permission to create/edit contributions and manage members.
-3. **Login as `superadmin`**: Verify access to global settings and Target configuration.
+2. **Login as `admin`**: Verify permission to create/edit contributions, manage contributors, and update the monthly amount in Settings.
+3. **Login as `superadmin`**: Verify the same capabilities as `admin`, plus access to the Auth0 auto-sync toggle.
 4. **Mobile Check (Chrome Mobile)**:
    - Initial access and session persistence.
    - `/contributions` list reload.
@@ -102,5 +105,5 @@ Run the utility script to audit all endpoints across different roles:
 ```bash
 cd dcm-api
 VIEWER_TOKEN="..." ADMIN_TOKEN="..." SUPERADMIN_TOKEN="..." \
-./tools/smoke-rbac-production.sh
+./tools/production/smoke-rbac.sh
 ```

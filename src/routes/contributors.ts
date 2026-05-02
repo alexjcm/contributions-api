@@ -1,5 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { API_PERMISSIONS } from "../config/permissions";
@@ -445,7 +445,11 @@ const listContributorsHandlers = appFactory.createHandlers(
           })
           .from(contributors)
           .where(statusFilter === "all" ? undefined : eq(contributors.status, 1))
-          .orderBy(desc(contributors.createdAt), desc(contributors.id)),
+          .orderBy(
+            sql`case when ${contributors.status} = 1 then 0 else 1 end`,
+            desc(contributors.createdAt),
+            desc(contributors.id)
+          ),
       { label: "contributors.list" }
     );
 
