@@ -1,5 +1,5 @@
 {% if user.app_metadata.dcm_password_setup_pending == true %}
-Activa tu cuenta
+Activa tu cuenta de DCM
 {% else %}
-Restablecer tu contraseña
+Restablecer tu contraseña de DCM
 {% endif %}
